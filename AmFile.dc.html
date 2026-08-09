@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-e182c30b-07cb-4ce7-9aa1-e99f4cce0d72/styles.css">
+<script src="_ds/industry-e182c30b-07cb-4ce7-9aa1-e99f4cce0d72/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --color-bg:#141618; --color-surface:#1b1e21; --color-text:#e4e7ea;
+  --color-accent:#749dc4; --color-divider:color-mix(in srgb,#e4e7ea 15%,transparent);
+  --ink:#e4e7ea; --dv:color-mix(in srgb,#e4e7ea 13%,transparent);
+  --dv2:color-mix(in srgb,#e4e7ea 8%,transparent);
+  --mut:color-mix(in srgb,#e4e7ea 52%,transparent);
+  --mut2:color-mix(in srgb,#e4e7ea 34%,transparent);
+  --chrome:#1b1e21; --chrome2:#202428; --deep:#0f1113;
+  --amneal:#ffd500;
+  --hi:#c98b6b; --med:#c8b06b; --low:#749dc4;
+}
+body{margin:0;background:var(--deep);font-family:var(--font-body);color:var(--ink);
+  -webkit-font-smoothing:antialiased}
+a{color:var(--color-accent)} a:hover{color:#94bce3}
+@keyframes amPulse{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes amSweep{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+@keyframes amCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+</style>
+</helmet>
+
+<div style="width:1440px;height:920px;background:var(--deep);color:var(--ink);font-family:var(--font-body);font-size:13px;display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.6)">
+
+  <div style="height:38px;flex:none;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--chrome);border-bottom:1px solid var(--dv);position:relative;z-index:5">
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding-left:8px">
+      <img src="assets/amneal-logo.png" alt="Amneal" style="height:15px;width:auto;display:block">
+      <span style="width:1px;height:16px;background:var(--dv)"></span>
+      <span style="font-family:var(--font-heading);font-weight:700;font-size:15px;letter-spacing:.10em;text-transform:uppercase">AmFile</span>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;align-items:center;gap:8px;min-width:0">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--mut)" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6"/></svg>
+      <span style="font-family:var(--font-body);font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">3.2.P.5 Control of Drug Product — CombiPatch ANDA 214-557.docx</span>
+      <span style="font-size:10px;font-family:var(--font-heading);letter-spacing:.09em;text-transform:uppercase;color:var(--mut2);border:1px solid var(--dv);padding:1px 5px">Saved 09:12</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button style="all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;height:24px;padding:0 9px;border:1px solid var(--dv);color:var(--mut)" style-hover="border-color:var(--color-accent);color:var(--ink)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM21 21l-4.35-4.35"/></svg>
+        <span style="font-size:11px;font-family:var(--font-heading);letter-spacing:.06em;text-transform:uppercase">Search</span>
+      </button>
+      <div style="width:24px;height:24px;border:1px solid var(--dv);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-size:11px;letter-spacing:.04em;color:var(--mut)">RD</div>
+    </div>
+  </div>
+
+  <div style="height:33px;flex:none;display:flex;align-items:stretch;background:var(--chrome);border-bottom:1px solid var(--dv);position:relative;z-index:4">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="11">
+      <button onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+    </sc-for>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleRibbon }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0 14px;color:var(--mut2);font-family:var(--font-heading);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase" style-hover="color:var(--ink)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6"/></svg>
+      Ribbon
+    </button>
+  </div>
+
+  <sc-if value="{{ ribbonOpen }}" hint-placeholder-val="{{ true }}">
+  <div style="height:98px;flex:none;display:flex;align-items:stretch;background:var(--chrome2);border-bottom:1px solid var(--dv);overflow:hidden;position:relative;z-index:3">
+    <sc-for list="{{ ribbon }}" as="g" hint-placeholder-count="6">
+      <div style="display:flex;flex-direction:column;justify-content:space-between;padding:7px 11px 4px;border-right:1px solid var(--dv2);flex:none">
+        <div style="display:flex;align-items:flex-start;gap:3px">
+          <sc-for list="{{ g.big }}" as="c" hint-placeholder-count="1">
+            <button title="{{ c.label }}" onClick="{{ c.act }}" style="all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;width:56px;padding:6px 2px 4px;color:var(--ink)" style-hover="background:color-mix(in srgb,#e4e7ea 7%,transparent)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"/></svg>
+              <span style="font-family:var(--font-heading);font-size:11px;line-height:1.1;text-align:center;letter-spacing:.02em">{{ c.label }}</span>
+            </button>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:1px">
+                <sc-for list="{{ r.items }}" as="c" hint-placeholder-count="4">
+                  <button title="{{ c.label }}" onClick="{{ c.act }}" style="{{ c.style }}">
+                    <sc-if value="{{ c.icon }}" hint-placeholder-val="{{ true }}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ c.icon }}"/></svg>
+                    </sc-if>
+                    <sc-if value="{{ c.glyph }}" hint-placeholder-val="{{ false }}">
+                      <span style="{{ c.glyphStyle }}">{{ c.glyph }}</span>
+                    </sc-if>
+                    <sc-if value="{{ c.text }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-family:var(--font-body);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.text }}</span>
+                    </sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-family:var(--font-heading);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut2);text-align:center;padding-top:3px">{{ g.name }}</div>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <div style="flex:1;min-height:0;display:flex;align-items:stretch">
+
+    <sc-if value="{{ leftClosed }}" hint-placeholder-val="{{ false }}">
+    <div style="width:34px;flex:none;background:var(--chrome);border-right:1px solid var(--dv);display:flex;flex-direction:column;align-items:center;padding-top:8px;gap:12px">
+      <button title="Show navigator" onClick="{{ toggleLeft }}" style="all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid var(--dv);color:var(--mut)" style-hover="border-color:var(--color-accent);color:var(--ink)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h18v16H3zM9 4v16"/></svg>
+      </button>
+      <span style="writing-mode:vertical-rl;font-family:var(--font-heading);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut2)">Navigator</span>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ leftOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="width:266px;flex:none;background:var(--chrome);border-right:1px solid var(--dv);display:flex;flex-direction:column;min-height:0">
+      <div style="height:34px;flex:none;display:flex;align-items:center;gap:0;padding:0 10px;border-bottom:1px solid var(--dv2)">
+        <sc-for list="{{ treeTabs }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+        <div style="flex:1"></div>
+        <button title="New document" style="all:unset;cursor:pointer;color:var(--mut2);display:flex;margin-right:9px" style-hover="color:var(--ink)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button title="Hide navigator" onClick="{{ toggleLeft }}" style="all:unset;cursor:pointer;color:var(--mut2);display:flex" style-hover="color:var(--ink)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h18v16H3zM9 4v16M15 9l-3 3 3 3"/></svg>
+        </button>
+      </div>
+      <div style="height:32px;flex:none;display:flex;align-items:center;gap:7px;padding:0 10px;border-bottom:1px solid var(--dv2)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--mut2)" stroke-width="1.5"><path d="M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM21 21l-4.35-4.35"/></svg>
+        <span style="font-size:11.5px;color:var(--mut2)">Filter files and sections</span>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:5px 0 14px">
+        <sc-for list="{{ tree }}" as="n" hint-placeholder-count="14">
+          <div onClick="{{ n.select }}" style="{{ n.style }}">
+            <sc-if value="{{ n.caret }}" hint-placeholder-val="{{ true }}">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;opacity:.55"><path d="{{ n.caret }}"/></svg>
+            </sc-if>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="flex:none;opacity:.7"><path d="{{ n.icon }}"/></svg>
+            <span style="{{ n.labelStyle }}">{{ n.label }}</span>
+            <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ n.badgeStyle }}">{{ n.badge }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex:none;border-top:1px solid var(--dv);padding:10px">
+        <button onClick="{{ startFolderRun }}" style="all:unset;cursor:pointer;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:7px;height:30px;background:var(--color-accent);color:#101214;font-family:var(--font-heading);font-size:12px;letter-spacing:.08em;text-transform:uppercase;position:relative" style-hover="background:#94bce3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4"/></svg>
+          Check entire folder
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        </button>
+        <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;color:var(--mut2);font-family:var(--font-heading);letter-spacing:.06em;text-transform:uppercase">
+          <span>18 docs · 604 pp</span><span>~24 min · $18.40</span>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#0d0f10;position:relative">
+
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+        <div style="height:22px;flex:none;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--dv2);background:#0d0f10;padding-right:214px;box-sizing:border-box">
+          <div style="width:596px;height:12px;display:flex;align-items:stretch;border-left:1px solid var(--dv2);border-right:1px solid var(--dv2)">
+            <div style="width:71px;background:color-mix(in srgb,#e4e7ea 6%,transparent)"></div>
+            <div style="flex:1;position:relative;border-left:1px solid var(--dv);border-right:1px solid var(--dv)">
+              <sc-for list="{{ rulerTicks }}" as="t" hint-placeholder-count="8">
+                <span style="{{ t.style }}"></span>
+              </sc-for>
+            </div>
+            <div style="width:71px;background:color-mix(in srgb,#e4e7ea 6%,transparent)"></div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow:auto;padding:22px 0 60px;display:flex;justify-content:center;gap:0">
+          <div style="display:flex;gap:18px;align-items:flex-start">
+
+            <div style="width:596px;flex:none;background:#f4f4f2;color:#16181a;box-shadow:0 10px 30px rgba(0,0,0,.55);padding:56px 71px;box-sizing:border-box;font-family:'Times New Roman',Times,serif;position:relative">
+              <div style="position:absolute;top:22px;left:71px;right:71px;display:flex;justify-content:space-between;font-family:var(--font-body);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#8a8d90">
+                <span>Amneal Pharmaceuticals · Confidential</span><span>ANDA 214-557 · Module 3.2.P.5</span>
+              </div>
+
+              <div style="font-family:var(--font-body);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#7d8388;margin-bottom:10px">3.2.P.5 &nbsp;Control of Drug Product</div>
+              <h2 style="font-family:'Times New Roman',Times,serif;font-weight:700;font-size:16px;line-height:1.25;color:#16181a;margin:0 0 12px;letter-spacing:0">3.2.P.5.1&emsp;Specification(s)</h2>
+
+              <p style="font-size:11px;line-height:1.72;margin:0 0 10px;text-align:justify">The drug product specification for CombiPatch (estradiol/norethindrone acetate) transdermal system is presented in Table 3.2.P.5.1-1. Specifications were established in accordance with ICH Q6A decision trees and are supported by batch analysis data from three registration batches manufactured at the Brookhaven facility.</p>
+
+              <p style="font-size:11px;line-height:1.72;margin:0 0 12px;text-align:justify">Release and shelf-life acceptance criteria are identical except where noted. <span style="background:color-mix(in srgb,#c98b6b 34%,transparent);box-shadow:0 1px 0 #c98b6b">The dissolution acceptance criterion of Q = 70% at 24 hours</span> was set on the basis of the pivotal bioequivalence batch, and <span style="text-decoration:line-through;color:#9aa0a6">justification is provided in Section 3.2.P.5.6</span><span style="color:#41627f;text-decoration:underline">a justification narrative is provided in Section 3.2.P.5.6</span>.</p>
+
+              <div style="font-family:var(--font-body);font-size:9px;font-weight:600;letter-spacing:.06em;color:#4c5155;margin:0 0 5px">Table 3.2.P.5.1-1 &nbsp;Drug Product Specification</div>
+              <div style="border-top:1.2px solid #16181a;border-bottom:1.2px solid #16181a;margin-bottom:14px">
+                <div style="display:grid;grid-template-columns:1.15fr 1.5fr 1.25fr;font-family:var(--font-body);font-size:9.5px;font-weight:600;padding:5px 0;border-bottom:.8px solid #16181a">
+                  <span>Test</span><span>Analytical Procedure</span><span>Acceptance Criterion</span>
+                </div>
+                <sc-for list="{{ specRows }}" as="r" hint-placeholder-count="5">
+                  <div style="{{ r.style }}">
+                    <span>{{ r.test }}</span><span style="color:#4c5155">{{ r.method }}</span><span>{{ r.criterion }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <h3 style="font-family:'Times New Roman',Times,serif;font-weight:700;font-size:13px;margin:0 0 8px;color:#16181a;letter-spacing:0">3.2.P.5.2&emsp;Analytical Procedures</h3>
+              <p style="font-size:11px;line-height:1.72;margin:0 0 10px;text-align:justify">Analytical procedures are described in the referenced method documents. <span style="background:color-mix(in srgb,#c8b06b 36%,transparent)">Method AM-2204 for related substances has not been cross-referenced to the validation report in 3.2.P.5.3</span>, and the system suitability limits stated here differ from those in the stability protocol.</p>
+              <p style="font-size:11px;line-height:1.72;margin:0;text-align:justify;color:#3a3f43">Residual solvent testing follows USP &lt;467&gt; Option 1. Where a solvent is used only in the adhesive coating step, a risk-based justification per ICH Q3C(R8) is provided<span style="display:inline-block;width:1px;height:11px;background:#16181a;vertical-align:-2px;margin-left:1px;animation:amCaret 1.05s step-end infinite"></span></p>
+
+              <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-family:var(--font-body);font-size:8.5px;color:#8a8d90">Page 4 of 18</div>
+            </div>
+
+            <div style="width:196px;flex:none;display:flex;flex-direction:column;gap:9px;padding-top:96px">
+              <sc-for list="{{ margins }}" as="m" hint-placeholder-count="3">
+                <div onClick="{{ m.select }}" class="blueprint" style="{{ m.style }}">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+                    <span style="{{ m.dot }}"></span>
+                    <span style="font-family:var(--font-heading);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:{{ m.color }}">{{ m.kind }}</span>
+                    <span style="flex:1"></span>
+                    <span style="font-family:var(--font-heading);font-size:9.5px;letter-spacing:.06em;color:var(--mut2)">{{ m.tier }}</span>
+                  </div>
+                  <div style="font-size:11.5px;line-height:1.4;font-weight:500;margin-bottom:4px">{{ m.title }}</div>
+                  <div style="font-size:10.5px;line-height:1.45;color:var(--mut)">{{ m.detail }}</div>
+                  <div style="display:flex;gap:6px;margin-top:8px">
+                    <span style="font-family:var(--font-heading);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut2);border:1px solid var(--dv);padding:1px 5px">{{ m.src }}</span>
+                    <span style="font-family:var(--font-heading);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut2)">{{ m.loc }}</span>
+                  </div>
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isFolder }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-height:0;overflow:auto;padding:26px 32px 40px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:6px">
+            <div>
+              <div style="font-family:var(--font-heading);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut2);margin-bottom:4px">Folder compliance run · ANDA 214-557</div>
+              <h2 style="font-family:var(--font-heading);font-size:27px;margin:0;letter-spacing:-.01em">Module 3 — Quality</h2>
+            </div>
+            <div style="display:flex;gap:26px;text-align:right">
+              <div><div style="font-family:var(--font-heading);font-size:24px;line-height:1">11<span style="color:var(--mut2);font-size:14px">/18</span></div><div style="font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--mut2);font-family:var(--font-heading)">Documents</div></div>
+              <div><div style="font-family:var(--font-heading);font-size:24px;line-height:1;color:var(--hi)">7</div><div style="font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--mut2);font-family:var(--font-heading)">High</div></div>
+              <div><div style="font-family:var(--font-heading);font-size:24px;line-height:1;color:var(--med)">23</div><div style="font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--mut2);font-family:var(--font-heading)">Medium</div></div>
+              <div><div style="font-family:var(--font-heading);font-size:24px;line-height:1;color:var(--mut)">14:02</div><div style="font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--mut2);font-family:var(--font-heading)">Elapsed</div></div>
+            </div>
+          </div>
+          <div style="height:3px;background:color-mix(in srgb,#e4e7ea 10%,transparent);margin:14px 0 22px;position:relative;overflow:hidden">
+            <div style="position:absolute;inset:0 39% 0 0;background:var(--color-accent)"></div>
+            <div style="position:absolute;top:0;bottom:0;width:22%;background:linear-gradient(90deg,transparent,color-mix(in srgb,#e4e7ea 35%,transparent),transparent);animation:amSweep 2.4s linear infinite"></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:22px;align-items:start">
+            <div>
+              <div style="font-family:var(--font-heading);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut2);margin-bottom:9px">Per-document progress</div>
+              <sc-for list="{{ runRows }}" as="r" hint-placeholder-count="8">
+                <div style="{{ r.style }}">
+                  <span style="{{ r.dot }}"></span>
+                  <span style="font-family:var(--font-heading);font-size:11px;letter-spacing:.06em;color:var(--mut2);width:58px;flex:none">{{ r.code }}</span>
+                  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">{{ r.name }}</span>
+                  <span style="font-family:var(--font-heading);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:{{ r.color }};width:98px;text-align:right;flex:none">{{ r.state }}</span>
+                  <span style="font-family:var(--font-heading);font-size:10.5px;color:var(--mut2);width:54px;text-align:right;flex:none">{{ r.findings }}</span>
+                </div>
+              </sc-for>
+
+              <div style="font-family:var(--font-heading);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut2);margin:22px 0 9px">Cross-document consistency</div>
+              <sc-for list="{{ crossDoc }}" as="c" hint-placeholder-count="3">
+                <div class="blueprint" style="padding:11px 13px;margin-bottom:9px;position:relative">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <span style="{{ c.dot }}"></span>
+                    <span style="font-size:12.5px;font-weight:500">{{ c.title }}</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:11px">
+                    <sc-for list="{{ c.rows }}" as="v" hint-placeholder-count="2">
+                      <span style="font-family:var(--font-heading);font-size:10.5px;letter-spacing:.06em;color:var(--mut2);white-space:nowrap">{{ v.where }}</span>
+                      <span style="font-family:var(--font-body);color:var(--ink)">{{ v.value }}</span>
+                    </sc-for>
+                  </div>
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                </div>
+              </sc-for>
+            </div>
+
+            <div class="blueprint" style="padding:13px 14px;position:relative;background:color-mix(in srgb,#e4e7ea 3%,transparent)">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span style="font-family:var(--font-heading);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut2)">Agent activity</span>
+              </div>
+              <div style="font-family:'Barlow Semi Condensed',var(--font-body);font-size:11.5px;line-height:1.75">
+                <sc-for list="{{ agentLog }}" as="l" hint-placeholder-count="10">
+                  <div style="{{ l.style }}"><span style="color:var(--mut2)">{{ l.agent }}</span> {{ l.msg }}</div>
+                </sc-for>
+              </div>
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-height:0;overflow:auto;padding:44px 46px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+            <img src="assets/amneal-logo.png" alt="Amneal" style="height:26px;width:auto">
+            <span style="width:1px;height:26px;background:var(--dv)"></span>
+            <h1 style="font-family:var(--font-heading);font-size:38px;margin:0;letter-spacing:.02em">AmFile</h1>
+          </div>
+          <p style="color:var(--mut);max-width:520px;font-size:13.5px;margin:0 0 30px">Regulatory authoring workspace. Open a submission folder to edit documents, run compliance checks against the deficiency rulebook, and research precedent.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin-bottom:30px">
+            <sc-for list="{{ startCards }}" as="c" hint-placeholder-count="3">
+              <div class="blueprint" style="padding:15px 15px 16px;position:relative;cursor:pointer" style-hover="border-color:var(--color-accent)">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" style="margin-bottom:12px"><path d="{{ c.icon }}"/></svg>
+                <div style="font-family:var(--font-heading);font-size:16px;letter-spacing:.01em;margin-bottom:3px">{{ c.title }}</div>
+                <div style="font-size:11.5px;color:var(--mut);line-height:1.45">{{ c.body }}</div>
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-family:var(--font-heading);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut2);margin-bottom:10px">Recent submissions</div>
+          <div style="max-width:900px">
+            <sc-for list="{{ recents }}" as="r" hint-placeholder-count="4">
+              <div onClick="{{ r.open }}" style="{{ r.style }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.6;flex:none"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.5l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
+                <span style="width:150px;flex:none;font-size:12.5px">{{ r.anda }}</span>
+                <span style="flex:1;min-width:0;color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.product }}</span>
+                <span style="font-family:var(--font-heading);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut2)">{{ r.meta }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-height:0;overflow:auto;padding:30px 40px">
+          <h2 style="font-family:var(--font-heading);font-size:26px;margin:0 0 3px">Settings</h2>
+          <div style="color:var(--mut);font-size:12.5px;margin-bottom:26px">Workspace preferences · applied to this machine (macOS 15.4 · build 2026.8.1)</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:900px">
+            <sc-for list="{{ settingGroups }}" as="s" hint-placeholder-count="4">
+              <div class="blueprint" style="padding:14px 15px 15px;position:relative">
+                <div style="font-family:var(--font-heading);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut2);margin-bottom:11px">{{ s.name }}</div>
+                <sc-for list="{{ s.items }}" as="i" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid var(--dv2)">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:12.5px">{{ i.label }}</div>
+                      <div style="font-size:10.5px;color:var(--mut2);line-height:1.35">{{ i.hint }}</div>
+                    </div>
+                    <span style="{{ i.controlStyle }}">{{ i.value }}</span>
+                  </div>
+                </sc-for>
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ dockClosed }}" hint-placeholder-val="{{ false }}">
+    <div style="width:34px;flex:none;background:var(--chrome);border-left:1px solid var(--dv);display:flex;flex-direction:column;align-items:center;padding-top:8px;gap:12px">
+      <button title="Show panel" onClick="{{ toggleDock }}" style="all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid var(--dv);color:var(--mut)" style-hover="border-color:var(--color-accent);color:var(--ink)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg>
+      </button>
+      <span style="writing-mode:vertical-rl;font-family:var(--font-heading);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut2)">AI research</span>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ dockOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="width:342px;flex:none;background:var(--chrome);border-left:1px solid var(--dv);display:flex;flex-direction:column;min-height:0">
+      <div style="height:34px;flex:none;display:flex;align-items:stretch;border-bottom:1px solid var(--dv2)">
+        <sc-for list="{{ dockTabs }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+        <button title="Hide panel" onClick="{{ toggleDock }}" style="all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:30px;flex:none;color:var(--mut2);border-bottom:2px solid transparent" style-hover="color:var(--ink)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{ dockChat }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1;min-height:0;overflow:auto;padding:13px 13px 6px;display:flex;flex-direction:column;gap:13px">
+          <sc-for list="{{ chat }}" as="m" hint-placeholder-count="4">
+            <div style="{{ m.wrap }}">
+              <div style="{{ m.who }}">{{ m.role }}</div>
+              <div style="{{ m.body }}">{{ m.text }}</div>
+              <sc-if value="{{ m.cites }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">
+                  <sc-for list="{{ m.cites }}" as="c" hint-placeholder-count="2">
+                    <span style="font-family:var(--font-heading);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border:1px solid var(--dv);padding:2px 6px">{{ c }}</span>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;gap:7px;color:var(--mut2)">
+            <span style="width:5px;height:5px;background:var(--color-accent);animation:amPulse 1.1s ease-in-out infinite"></span>
+            <span style="font-family:var(--font-heading);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase">Searching precedent index — 41 ANDAs</span>
+          </div>
+        </div>
+        <div style="flex:none;padding:10px 13px 12px;border-top:1px solid var(--dv2)">
+          <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+              <span style="font-family:var(--font-heading);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border:1px solid var(--dv);padding:3px 7px;cursor:pointer" style-hover="border-color:var(--color-accent);color:var(--ink)">{{ c }}</span>
+            </sc-for>
+          </div>
+          <div class="blueprint" style="padding:9px 10px;position:relative;display:flex;align-items:flex-end;gap:8px">
+            <span style="flex:1;font-size:12px;color:var(--mut2);line-height:1.4">Ask about precedent, guidance, or this section…</span>
+            <button style="all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--color-accent);color:#101214;flex:none" style-hover="background:#94bce3">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--mut2);font-family:var(--font-heading);letter-spacing:.07em;text-transform:uppercase">
+            <span>Grounded · rulebook v4.2 + 41 ANDAs</span><span>Ctrl ↵ to send</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ dockCompliance }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-height:0;overflow:auto">
+          <div style="padding:13px 13px 11px;border-bottom:1px solid var(--dv2)">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:9px">
+              <span style="font-family:var(--font-heading);font-size:28px;line-height:1">9</span>
+              <span style="font-size:11.5px;color:var(--mut)">findings in this document</span>
+            </div>
+            <div style="display:flex;height:5px;gap:2px;margin-bottom:8px">
+              <span style="flex:2;background:var(--hi)"></span><span style="flex:4;background:var(--med)"></span><span style="flex:3;background:var(--low)"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut2)">
+              <span>2 high · 4 medium · 3 low</span><span>Analysed in 41.2 s</span>
+            </div>
+          </div>
+          <sc-for list="{{ findings }}" as="f" hint-placeholder-count="6">
+            <div onClick="{{ f.select }}" style="{{ f.style }}">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+                <span style="{{ f.dot }}"></span>
+                <span style="font-family:var(--font-heading);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:{{ f.color }}">{{ f.severity }}</span>
+                <span style="font-family:var(--font-heading);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2);border:1px solid var(--dv);padding:0 5px">{{ f.tier }}</span>
+                <span style="flex:1"></span>
+                <span style="font-family:var(--font-heading);font-size:10px;color:var(--mut2)">{{ f.loc }}</span>
+              </div>
+              <div style="font-size:12.5px;line-height:1.35;margin-bottom:3px">{{ f.title }}</div>
+              <div style="font-size:11px;color:var(--mut);line-height:1.45">{{ f.detail }}</div>
+              <div style="font-family:'Barlow Semi Condensed',var(--font-body);font-size:10.5px;color:var(--mut2);margin-top:6px;letter-spacing:.02em">{{ f.source }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ dockComments }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-height:0;overflow:auto">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--dv2)">
+            <span style="width:6px;height:6px;background:var(--color-accent)"></span>
+            <span style="font-family:var(--font-heading);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mut)">Track changes on · All markup</span>
+            <span style="flex:1"></span>
+            <span style="font-family:var(--font-heading);font-size:10.5px;color:var(--mut2)">14 revisions</span>
+          </div>
+          <sc-for list="{{ comments }}" as="c" hint-placeholder-count="4">
+            <div style="{{ c.style }}">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <span style="width:20px;height:20px;border:1px solid var(--dv);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-size:9.5px;color:var(--mut);flex:none">{{ c.initials }}</span>
+                <span style="font-size:12px;font-weight:500">{{ c.who }}</span>
+                <span style="flex:1"></span>
+                <span style="font-family:var(--font-heading);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut2)">{{ c.when }}</span>
+              </div>
+              <sc-if value="{{ c.change }}" hint-placeholder-val="{{ false }}">
+                <div style="font-family:'Times New Roman',Times,serif;font-size:11.5px;line-height:1.5;padding:6px 8px;border-left:2px solid var(--color-accent);background:color-mix(in srgb,#e4e7ea 4%,transparent);margin-bottom:6px;color:var(--mut)">{{ c.change }}</div>
+              </sc-if>
+              <div style="font-size:11.5px;line-height:1.45;color:var(--ink)">{{ c.text }}</div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button style="all:unset;cursor:pointer;display:flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid var(--dv);font-family:var(--font-heading);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)" style-hover="border-color:var(--color-accent);color:var(--ink)">Accept</button>
+                <button style="all:unset;cursor:pointer;display:flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid var(--dv);font-family:var(--font-heading);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)" style-hover="border-color:var(--color-accent);color:var(--ink)">Reject</button>
+                <button style="all:unset;cursor:pointer;display:flex;align-items:center;gap:5px;padding:2px 8px;font-family:var(--font-heading);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut2)" style-hover="color:var(--ink)">Reply</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+    </sc-if>
+  </div>
+
+  <div style="height:26px;flex:none;display:flex;align-items:center;gap:16px;padding:0 13px;background:var(--chrome);border-top:1px solid var(--dv);font-family:var(--font-heading);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2)">
+    <span>Page 4 of 18</span>
+    <span>6,204 words</span>
+    <span>English (US)</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;background:var(--color-accent)"></span>Track changes on</span>
+    <span style="flex:1"></span>
+    <span style="display:flex;align-items:center;gap:6px;color:var(--mut)"><span style="width:5px;height:5px;background:var(--hi)"></span>9 findings · rulebook v4.2</span>
+    <span>Print layout</span>
+    <span style="display:flex;align-items:center;gap:7px">
+      <span style="width:74px;height:3px;background:color-mix(in srgb,#e4e7ea 14%,transparent);position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:44%;background:var(--mut)"></span></span>
+      85%
+    </span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:920}}">
+const I = {
+  clipboard:"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6v4H9z",
+  scissors:"M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  copy:"M9 9h11v11H9zM5 15H4V4h11v1",
+  brush:"M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z",
+  type:"M4 7V4h16v3M9 20h6M12 4v16",
+  list:"M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  listOrd:"M10 6h11M10 12h11M10 18h11M4 4h1v4M4 8h2M6 18H4c0-1 2-1.6 2-2.6S5 14 4 14.6",
+  alignL:"M3 6h18M3 12h12M3 18h15",
+  alignC:"M3 6h18M6 12h12M4 18h16",
+  alignR:"M3 6h18M9 12h12M6 18h15",
+  alignJ:"M3 6h18M3 12h18M3 18h18",
+  indentR:"M3 6h18M11 12h10M3 18h18M3 10l3 2-3 2",
+  indentL:"M3 6h18M11 12h10M3 18h18M6 10l-3 2 3 2",
+  lineSp:"M3 5h18M3 12h18M3 19h18M0 0",
+  table:"M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18",
+  image:"M3 3h18v18H3zM8.5 8.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM21 15l-5-5L5 21",
+  shapes:"M3 13h8v8H3zM17.5 3L22 11h-9z",
+  chart:"M3 3v18h18M7 15v3M12 9v9M17 5v13",
+  link:"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
+  comment:"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  header:"M4 3h16v5H4zM4 12h10M4 16h13M4 20h8",
+  footer:"M4 21h16v-5H4zM4 4h10M4 8h13M4 12h8",
+  textbox:"M3 5h18v14H3zM7 9h10M7 13h6",
+  omega:"M5 20h4v-2a7 7 0 1 1 6 0v2h4",
+  page:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6",
+  columns:"M4 3h16v18H4zM12 3v18",
+  orient:"M4 4h10v16H4zM17 8h3v8h-3",
+  margins:"M3 3h18v18H3zM7 7h10v10H7z",
+  break:"M4 6h16M4 18h16M9 12h6M4 12h2M18 12h2",
+  arrange:"M4 4h8v8H4zM12 12h8v8h-8",
+  toc:"M4 5h4M10 5h10M4 12h4M10 12h10M4 19h4M10 19h10",
+  footnote:"M4 4h10M4 9h16M4 14h13M14 20h6M14 17l3 3-3 3",
+  cite:"M3 21c3 0 7-1 7-8V5H3v11h4M14 21c3 0 7-1 7-8V5h-7v11h4",
+  caption:"M3 4h18v12H3zM7 20h10",
+  index:"M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
+  spell:"M4 18l5-12 5 12M6 14h6M16 17l2 2 4-4",
+  thesaurus:"M12 3v18M7 7h10M5 12h14M7 17h10",
+  words:"M4 6h16M4 12h16M4 18h9",
+  track:"M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z",
+  accept:"M20 6L9 17l-5-5",
+  reject:"M18 6L6 18M6 6l12 12",
+  compare:"M12 3v18M7 8L3 12l4 4M17 8l4 4-4 4",
+  protect:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  eye:"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  ruler:"M3 8h18v8H3zM7 8v3M11 8v5M15 8v3M19 8v5",
+  zoom:"M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM21 21l-4.35-4.35M8 11h6M11 8v6",
+  window:"M3 4h18v16H3zM3 9h18",
+  macro:"M8 4l-5 8 5 8M16 4l5 8-5 8",
+  nav:"M4 5h6v14H4zM12 5h8v6h-8zM12 13h8v6h-8z",
+  shield:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4",
+  folder:"M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.5l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z",
+  book:"M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
+  sparkle:"M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z",
+  report:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 17v-4M12 17v-7M16 17v-2",
+  undo:"M3 7v6h6M3 13a9 9 0 1 0 3-6.7L3 9",
+  redo:"M21 7v6h-6M21 13a9 9 0 1 1-3-6.7L21 9",
+  print:"M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z",
+  save:"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8",
+  pen:"M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586",
+  eraser:"M20 20H7l-4-4 9-9 8 8-6 6M11 7l6 6",
+  design:"M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z",
+  mail:"M4 4h16v16H4zM4 7l8 6 8-6",
+  labels:"M3 6h11l4 6-4 6H3z",
+  dictate:"M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10a7 7 0 0 1-14 0M12 17v5",
+  find:"M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM21 21l-4.35-4.35",
+  select:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  styles:"M4 6h16M4 12h10M4 18h13M18 12l3 3-3 3"
+};
+
+const T = {
+  tabBtn(on){ return "all:unset;cursor:pointer;display:flex;align-items:center;padding:0 13px;font-family:var(--font-heading);font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:"+(on?"var(--ink)":"var(--mut2)")+";border-bottom:2px solid "+(on?"var(--color-accent)":"transparent")+";background:"+(on?"var(--chrome2)":"transparent"); },
+  small(){ return "all:unset;cursor:pointer;display:flex;align-items:center;gap:5px;height:22px;padding:0 6px;color:var(--ink);max-width:150px"; },
+  dot(c){ return "width:6px;height:6px;flex:none;background:"+c; }
+};
+
+const SEV = { high:"var(--hi)", medium:"var(--med)", low:"var(--low)" };
+
+const RIBBON = {
+  File:[
+    {name:"Document",big:[{icon:I.save,label:"Save"},{icon:I.print,label:"Print"}],rows:[
+      [{icon:I.page,text:"New",act:"welcome"},{icon:I.folder,text:"Open",act:"welcome"}],
+      [{icon:I.report,text:"Export PDF"},{icon:I.mail,text:"Share"}],
+      [{icon:I.protect,text:"Protect document"}]]},
+    {name:"Workspace",big:[{icon:I.folder,label:"Open folder",act:"welcome"}],rows:[
+      [{icon:I.book,text:"Rulebook v4.2"}],[{icon:I.eye,text:"Version history"}],[{icon:I.macro,text:"Settings",act:"settings"}]]}
+  ],
+  Home:[
+    {name:"Clipboard",big:[{icon:I.clipboard,label:"Paste"}],rows:[
+      [{icon:I.scissors,text:"Cut"}],[{icon:I.copy,text:"Copy"}],[{icon:I.brush,text:"Format painter"}]]},
+    {name:"Font",big:[],rows:[
+      [{text:"Times New Roman",w:132},{text:"11",w:34},{glyph:"A",gs:16},{glyph:"A",gs:11}],
+      [{glyph:"B",gb:1},{glyph:"I",gi:1},{glyph:"U",gu:1},{glyph:"S",gst:1},{glyph:"x₂"},{glyph:"x²"},{icon:I.brush},{icon:I.type},{icon:I.eraser}]]},
+    {name:"Paragraph",big:[],rows:[
+      [{icon:I.list},{icon:I.listOrd},{icon:I.toc},{icon:I.indentL},{icon:I.indentR},{icon:I.arrange},{icon:I.omega}],
+      [{icon:I.alignL},{icon:I.alignC},{icon:I.alignR},{icon:I.alignJ},{icon:I.lineSp},{icon:I.shapes},{icon:I.table}]]},
+    {name:"Styles",big:[{icon:I.styles,label:"Styles"}],rows:[
+      [{text:"Heading 1"},{text:"Heading 2"}],[{text:"Normal"},{text:"Table caption"}],[{text:"CTD section"},{text:"Reference"}]]},
+    {name:"Editing",big:[],rows:[
+      [{icon:I.find,text:"Find"}],[{icon:I.pen,text:"Replace"}],[{icon:I.select,text:"Select"}]]},
+    {name:"Voice",big:[{icon:I.dictate,label:"Dictate"}],rows:[]},
+    {name:"Assist",big:[{icon:I.sparkle,label:"Editor"},{icon:I.shield,label:"Check doc"}],rows:[]}
+  ],
+  Insert:[
+    {name:"Pages",big:[{icon:I.page,label:"Cover page"}],rows:[[{icon:I.page,text:"Blank page"}],[{icon:I.break,text:"Page break"}]]},
+    {name:"Tables",big:[{icon:I.table,label:"Table"}],rows:[]},
+    {name:"Illustrations",big:[{icon:I.image,label:"Pictures"}],rows:[
+      [{icon:I.shapes,text:"Shapes"},{icon:I.sparkle,text:"Icons"}],
+      [{icon:I.chart,text:"Chart"},{icon:I.arrange,text:"SmartArt"}],
+      [{icon:I.window,text:"Screenshot"},{icon:I.design,text:"3D model"}]]},
+    {name:"Links",big:[{icon:I.link,label:"Link"}],rows:[[{icon:I.book,text:"Bookmark"}],[{icon:I.toc,text:"Cross-reference"}]]},
+    {name:"Comments",big:[{icon:I.comment,label:"Comment"}],rows:[]},
+    {name:"Header & footer",big:[],rows:[
+      [{icon:I.header,text:"Header"}],[{icon:I.footer,text:"Footer"}],[{icon:I.page,text:"Page number"}]]},
+    {name:"Text",big:[{icon:I.textbox,label:"Text box"}],rows:[
+      [{icon:I.type,text:"Quick parts"},{icon:I.design,text:"WordArt"}],
+      [{icon:I.type,text:"Drop cap"},{icon:I.pen,text:"Signature line"}],
+      [{icon:I.page,text:"Date & time"},{icon:I.shapes,text:"Object"}]]},
+    {name:"Symbols",big:[{icon:I.omega,label:"Symbol"}],rows:[[{icon:I.omega,text:"Equation"}]]}
+  ],
+  Design:[
+    {name:"Document formatting",big:[{icon:I.design,label:"Themes"}],rows:[
+      [{text:"Amneal CTD"},{text:"eCTD plain"}],[{text:"Colors"},{text:"Fonts"}],[{text:"Paragraph spacing"},{text:"Effects"}]]},
+    {name:"Page background",big:[],rows:[
+      [{icon:I.type,text:"Watermark"}],[{icon:I.shapes,text:"Page color"}],[{icon:I.margins,text:"Page borders"}]]}
+  ],
+  Layout:[
+    {name:"Page setup",big:[{icon:I.margins,label:"Margins"},{icon:I.orient,label:"Orientation"},{icon:I.page,label:"Size A4"}],rows:[
+      [{icon:I.columns,text:"Columns"}],[{icon:I.break,text:"Breaks"}],[{icon:I.toc,text:"Line numbers"}]]},
+    {name:"Paragraph",big:[],rows:[
+      [{icon:I.indentR,text:"Indent left  0 cm"}],[{icon:I.indentL,text:"Indent right 0 cm"}],
+      [{icon:I.lineSp,text:"Spacing before 6 pt"}]]},
+    {name:"Arrange",big:[{icon:I.arrange,label:"Position"}],rows:[
+      [{icon:I.image,text:"Wrap text"},{icon:I.alignL,text:"Align"}],
+      [{icon:I.shapes,text:"Bring forward"},{icon:I.select,text:"Group"}],
+      [{icon:I.shapes,text:"Send backward"},{icon:I.orient,text:"Rotate"}]]}
+  ],
+  References:[
+    {name:"Contents",big:[{icon:I.toc,label:"Table of contents"}],rows:[[{icon:I.page,text:"Add text"}],[{icon:I.undo,text:"Update table"}]]},
+    {name:"Footnotes",big:[{icon:I.footnote,label:"Insert footnote"}],rows:[[{icon:I.footnote,text:"Insert endnote"}],[{icon:I.find,text:"Next footnote"}]]},
+    {name:"Citations",big:[{icon:I.cite,label:"Insert citation"}],rows:[
+      [{icon:I.book,text:"Manage sources"}],[{text:"Style: ICH / CTD"}],[{icon:I.index,text:"Bibliography"}]]},
+    {name:"Captions",big:[{icon:I.caption,label:"Insert caption"}],rows:[[{icon:I.toc,text:"Table of figures"}],[{icon:I.link,text:"Cross-reference"}]]},
+    {name:"Index",big:[{icon:I.index,label:"Mark entry"}],rows:[[{icon:I.toc,text:"Insert index"}],[{icon:I.undo,text:"Update index"}]]}
+  ],
+  Mailings:[
+    {name:"Create",big:[{icon:I.mail,label:"Envelopes"},{icon:I.labels,label:"Labels"}],rows:[]},
+    {name:"Start merge",big:[{icon:I.mail,label:"Start merge"}],rows:[[{icon:I.select,text:"Select recipients"}],[{icon:I.list,text:"Edit list"}]]},
+    {name:"Write & insert",big:[],rows:[
+      [{icon:I.type,text:"Address block"}],[{icon:I.type,text:"Greeting line"}],[{icon:I.link,text:"Insert merge field"}]]},
+    {name:"Finish",big:[{icon:I.accept,label:"Finish & merge"}],rows:[[{icon:I.eye,text:"Preview results"}]]}
+  ],
+  Review:[
+    {name:"Proofing",big:[{icon:I.spell,label:"Spelling"}],rows:[
+      [{icon:I.thesaurus,text:"Thesaurus"}],[{icon:I.words,text:"Word count"}],[{icon:I.book,text:"Read aloud"}]]},
+    {name:"Language",big:[],rows:[[{icon:I.type,text:"Translate"}],[{icon:I.book,text:"Language: EN-US"}]]},
+    {name:"Comments",big:[{icon:I.comment,label:"New comment"}],rows:[
+      [{icon:I.reject,text:"Delete"}],[{icon:I.undo,text:"Previous"}],[{icon:I.redo,text:"Next"}]]},
+    {name:"Tracking",big:[{icon:I.track,label:"Track changes"}],rows:[
+      [{text:"All markup"}],[{icon:I.eye,text:"Show markup"}],[{icon:I.nav,text:"Reviewing pane"}]]},
+    {name:"Changes",big:[{icon:I.accept,label:"Accept"},{icon:I.reject,label:"Reject"}],rows:[
+      [{icon:I.undo,text:"Previous"}],[{icon:I.redo,text:"Next"}]]},
+    {name:"Compare",big:[{icon:I.compare,label:"Compare"}],rows:[[{icon:I.copy,text:"Combine"}]]},
+    {name:"Protect",big:[{icon:I.protect,label:"Restrict editing"}],rows:[[{icon:I.protect,text:"Block authors"}]]}
+  ],
+  View:[
+    {name:"Views",big:[{icon:I.page,label:"Print layout"},{icon:I.book,label:"Read mode"}],rows:[
+      [{icon:I.window,text:"Web layout"}],[{icon:I.toc,text:"Outline"}],[{icon:I.list,text:"Draft"}]]},
+    {name:"Show",big:[],rows:[
+      [{icon:I.ruler,text:"Ruler"}],[{icon:I.table,text:"Gridlines"}],[{icon:I.nav,text:"Navigation pane"}]]},
+    {name:"Zoom",big:[{icon:I.zoom,label:"Zoom 85%"}],rows:[
+      [{text:"One page"}],[{text:"Multiple pages"}],[{text:"Page width"}]]},
+    {name:"Window",big:[{icon:I.window,label:"New window"}],rows:[
+      [{icon:I.columns,text:"Split"}],[{icon:I.compare,text:"Side by side"}],[{icon:I.arrange,text:"Arrange all"}]]},
+    {name:"Macros",big:[{icon:I.macro,label:"Macros"}],rows:[]}
+  ],
+  Compliance:[
+    {name:"This document",big:[{icon:I.shield,label:"Check now",act:"doc"}],rows:[
+      [{icon:I.eye,text:"Show markers",act:"doc"}],[{icon:I.report,text:"Finding report",act:"doc"}],[{icon:I.accept,text:"Resolve all"}]]},
+    {name:"Folder",big:[{icon:I.folder,label:"Check folder",act:"folder"}],rows:[
+      [{icon:I.compare,text:"Cross-doc consistency",act:"folder"}],[{icon:I.words,text:"Estimate cost",act:"folder"}],[{icon:I.report,text:"Export report"}]]},
+    {name:"Knowledge",big:[{icon:I.book,label:"Rulebook"}],rows:[
+      [{icon:I.find,text:"Precedent search"}],[{icon:I.index,text:"41 ANDAs indexed"}],[{icon:I.macro,text:"Model: local"}]]},
+    {name:"Research",big:[{icon:I.sparkle,label:"AI companion",act:"chat"}],rows:[
+      [{icon:I.comment,text:"Ask about selection",act:"chat"}],[{icon:I.cite,text:"Cite guidance",act:"chat"}]]}
+  ]
+};
+
+const TREE_PROJECT = [
+  {d:0,t:"f",l:"ANDA 214-557 — CombiPatch",open:1},
+  {d:1,t:"f",l:"m1 — Administrative",open:0},
+  {d:1,t:"f",l:"m2 — Summaries",open:0},
+  {d:1,t:"f",l:"m3 — Quality",open:1},
+  {d:2,t:"f",l:"3.2.S — Drug Substance",open:0,b:"4"},
+  {d:2,t:"f",l:"3.2.P — Drug Product",open:1,b:"18"},
+  {d:3,t:"d",l:"3.2.P.1 Description.docx"},
+  {d:3,t:"d",l:"3.2.P.2 Development.docx",b:"3"},
+  {d:3,t:"d",l:"3.2.P.3 Manufacture.docx",b:"2"},
+  {d:3,t:"d",l:"3.2.P.4 Excipients.docx"},
+  {d:3,t:"d",l:"3.2.P.5 Control of Drug Product.docx",b:"9",sel:1},
+  {d:3,t:"d",l:"3.2.P.6 Reference Standards.docx"},
+  {d:3,t:"d",l:"3.2.P.7 Container Closure.docx",b:"1"},
+  {d:3,t:"d",l:"3.2.P.8 Stability.docx",b:"3"},
+  {d:2,t:"f",l:"3.2.A — Appendices",open:0},
+  {d:2,t:"f",l:"3.3 — Literature",open:0},
+  {d:1,t:"f",l:"m4 — Nonclinical",open:0},
+  {d:1,t:"f",l:"m5 — Clinical",open:0},
+  {d:0,t:"f",l:"Working drafts",open:0}
+];
+
+const TREE_OUTLINE = [
+  {d:0,t:"d",l:"3.2.P.5 Control of Drug Product",open:1},
+  {d:1,t:"h",l:"3.2.P.5.1 Specification(s)",sel:1,b:"5"},
+  {d:2,t:"h",l:"Table 3.2.P.5.1-1"},
+  {d:2,t:"h",l:"Release vs shelf-life criteria",b:"2"},
+  {d:1,t:"h",l:"3.2.P.5.2 Analytical Procedures",b:"3"},
+  {d:2,t:"h",l:"AM-2204 Related substances"},
+  {d:2,t:"h",l:"AM-1180 Assay by HPLC"},
+  {d:1,t:"h",l:"3.2.P.5.3 Validation of Analytical Procedures",b:"1"},
+  {d:1,t:"h",l:"3.2.P.5.4 Batch Analyses"},
+  {d:2,t:"h",l:"Registration batches (3)"},
+  {d:1,t:"h",l:"3.2.P.5.5 Characterisation of Impurities"},
+  {d:1,t:"h",l:"3.2.P.5.6 Justification of Specification(s)"},
+  {d:0,t:"d",l:"Attachments",open:0}
+];
+
+class Component extends DCLogic {
+  state = {
+    tab:"Home", ribbonOpen:true, view:"editor", dock:"chat", treeTab:"Project",
+    activeFinding:0, treeSel:"3.2.P.5 Control of Drug Product.docx",
+    leftOpen:true, dockOpen:true
+  };
+
+  set(k,v){ return () => this.setState({[k]:v}); }
+
+  renderVals(){
+    const s = this.state;
+    const tabNames = ["File","Home","Insert","Design","Layout","References","Mailings","Review","View","Compliance"];
+
+    const tabs = tabNames.map(n => ({
+      label:n, select:this.set("tab",n),
+      style:T.tabBtn(s.tab===n) + (n==="Compliance"?";color:"+(s.tab===n?"var(--ink)":"var(--color-accent)"):"")
+    }));
+
+    const noop = () => {};
+    const ACT = {
+      welcome: () => this.setState({view:"welcome"}),
+      settings: () => this.setState({view:"settings"}),
+      folder: () => this.setState({view:"folder"}),
+      editor: () => this.setState({view:"editor"}),
+      doc: () => this.setState({view:"editor", dock:"compliance", dockOpen:true}),
+      chat: () => this.setState({view:"editor", dock:"chat", dockOpen:true})
+    };
+
+    const ribbon = (RIBBON[s.tab]||[]).map(g => ({
+      name:g.name,
+      big:(g.big||[]).map(c => ({icon:c.icon,label:c.label,act:ACT[c.act]||noop})),
+      rows:(g.rows||[]).map(items => ({
+        items: items.map(c => {
+          const st = T.small() + (c.w?";width:"+c.w+"px":"") + (c.text&&!c.w?";min-width:74px":"")
+            + (c.w?";border:1px solid var(--dv);padding:0 6px":"");
+          let gs = "font-family:'Times New Roman',serif;font-size:"+(c.gs||13)+"px;width:16px;text-align:center;line-height:1";
+          if(c.gb) gs += ";font-weight:700";
+          if(c.gi) gs += ";font-style:italic";
+          if(c.gu) gs += ";text-decoration:underline";
+          if(c.gst) gs += ";text-decoration:line-through";
+          return {icon:c.icon||"", glyph:c.glyph||"", text:c.text||"", style:st, glyphStyle:gs, act:ACT[c.act]||noop};
+        })
+      }))
+    }));
+
+    const treeTabs = ["Project","Outline"].map(n => ({
+      label:n, select:this.set("treeTab",n),
+      style:"all:unset;cursor:pointer;padding:3px 9px;font-family:var(--font-heading);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;border:1px solid "+(s.treeTab===n?"var(--color-accent)":"transparent")+";color:"+(s.treeTab===n?"var(--ink)":"var(--mut2)")
+    }));
+
+    const src = s.treeTab==="Project" ? TREE_PROJECT : TREE_OUTLINE;
+    const tree = src.map(n => {
+      const sel = n.sel && s.treeSel;
+      return {
+        label:n.l,
+        caret: n.t==="f"||n.open!==undefined ? (n.open ? "M6 9l6 6 6-6" : "M9 18l6-6-6-6") : "",
+        icon: n.t==="f" ? I.folder : (n.t==="h" ? I.toc : I.page),
+        badge: n.b || "",
+        select: () => this.setState({treeSel:n.l, view:"editor"}),
+        style:"display:flex;align-items:center;gap:6px;height:25px;cursor:pointer;padding-left:"+(9 + n.d*13)+"px;padding-right:10px;color:"+(sel?"var(--ink)":"var(--mut)")+";background:"+(sel?"color-mix(in srgb,#749dc4 16%,transparent)":"transparent")+";border-left:2px solid "+(sel?"var(--color-accent)":"transparent"),
+        labelStyle:"flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-family:"+(n.t==="f"?"var(--font-heading);letter-spacing:.03em;font-size:12.5px":"var(--font-body)"),
+        badgeStyle:"font-family:var(--font-heading);font-size:9.5px;letter-spacing:.04em;color:"+(Number(n.b)>=5?"var(--hi)":"var(--mut2)")+";border:1px solid "+(Number(n.b)>=5?"color-mix(in srgb,#c98b6b 60%,transparent)":"var(--dv)")+";padding:0 4px;flex:none"
+      };
+    });
+
+    const dockTabs = [["chat","AI research"],["compliance","Compliance"],["comments","Review"]].map(([k,l]) => ({
+      label:l, select:this.set("dock",k),
+      style:"all:unset;cursor:pointer;flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:"+(s.dock===k?"var(--ink)":"var(--mut2)")+";border-bottom:2px solid "+(s.dock===k?"var(--color-accent)":"transparent")
+    }));
+
+    const rulerTicks = Array.from({length:9},(_,i)=>({
+      style:"position:absolute;top:3px;bottom:3px;width:1px;background:var(--dv);left:"+((i+1)*10)+"%"
+    }));
+
+    const specRows = [
+      {test:"Appearance",method:"Visual",criterion:"Conforms to description"},
+      {test:"Identification",method:"HPLC / UV — AM-1180",criterion:"Retention time conforms"},
+      {test:"Assay (estradiol)",method:"HPLC — AM-1180",criterion:"90.0 – 110.0 % of label"},
+      {test:"Related substances",method:"HPLC — AM-2204",criterion:"Any single ≤ 0.5 %; total ≤ 2.0 %"},
+      {test:"Dissolution",method:"USP <724> Apparatus 5",criterion:"Q = 70 % at 24 h"},
+      {test:"Microbial limits",method:"USP <61> / <62>",criterion:"TAMC ≤ 10² CFU/patch"}
+    ].map((r,i)=>({...r,style:"display:grid;grid-template-columns:1.15fr 1.5fr 1.25fr;font-family:var(--font-body);font-size:9.5px;padding:4px 0"+(i<5?";border-bottom:.5px solid #c9cbcd":"")}));
+
+    const marginData = [
+      {kind:"High",tier:"Verified",title:"Dissolution criterion not justified against bio-batch",detail:"Q = 70 % at 24 h differs from the 3.2.P.2.3 dissolution profile (Q = 75 %). No bridging rationale in 3.2.P.5.6.",src:"Rule CMC-114",loc:"p.4 · ¶2",color:"var(--hi)"},
+      {kind:"Medium",tier:"Corroborated",title:"AM-2204 not cross-referenced to validation",detail:"Related-substances method cited without a link to the validation report required by ICH Q2(R2).",src:"Rule CMC-061",loc:"p.4 · ¶5",color:"var(--med)"},
+      {kind:"Low",tier:"Advisory",title:"Residual solvent rationale is narrative only",detail:"ICH Q3C(R8) risk assessment referenced but not tabulated; 6 of 41 precedent ANDAs drew a deficiency here.",src:"Precedent",loc:"p.4 · ¶6",color:"var(--low)"}
+    ];
+    const margins = marginData.map((m,i)=>({
+      ...m, select:this.set("activeFinding",i),
+      dot:T.dot(m.color),
+      style:"padding:10px 11px;cursor:pointer;position:relative;background:"+(s.activeFinding===i?"color-mix(in srgb,#e4e7ea 6%,transparent)":"transparent")+";border-color:"+(s.activeFinding===i?"color-mix(in srgb,#749dc4 70%,transparent)":"var(--dv)")
+    }));
+
+    const findings = [
+      {severity:"High",tier:"Verified",loc:"p.4",title:"Dissolution criterion not justified against bio-batch",detail:"Q = 70 % at 24 h differs from 3.2.P.2.3 (Q = 75 %) with no bridging rationale.",source:"rule CMC-114 · code-verified · 11 precedents"},
+      {severity:"High",tier:"Verified",loc:"p.9",title:"Stability commitment missing for the 0.05/0.14 strength",detail:"Only two of three registration strengths carry a post-approval commitment.",source:"rule CMC-207 · code-verified · 6 precedents"},
+      {severity:"Medium",tier:"Corroborated",loc:"p.4",title:"AM-2204 not cross-referenced to validation report",detail:"Method cited without the ICH Q2(R2) validation linkage.",source:"rule CMC-061 · quote-anchored · 4 precedents"},
+      {severity:"Medium",tier:"Corroborated",loc:"p.6",title:"System suitability limits differ from stability protocol",detail:"RSD ≤ 2.0 % here vs ≤ 1.5 % in SP-441.",source:"rule CMC-088 · quote-anchored"},
+      {severity:"Medium",tier:"Advisory",loc:"p.7",title:"Impurity nomenclature inconsistent with 3.2.S.3.2",detail:"'Impurity D' vs 'norethindrone-Δ4' across modules.",source:"model judgment · 3 precedents"},
+      {severity:"Low",tier:"Advisory",loc:"p.4",title:"Residual solvent rationale is narrative only",detail:"ICH Q3C(R8) assessment not tabulated.",source:"precedent · 6 of 41 ANDAs"}
+    ].map((f,i)=>({
+      ...f, color:SEV[f.severity.toLowerCase()], dot:T.dot(SEV[f.severity.toLowerCase()]),
+      select:this.set("activeFinding", Math.min(i,2)),
+      style:"padding:11px 13px;border-bottom:1px solid var(--dv2);cursor:pointer;background:"+(i===0?"color-mix(in srgb,#e4e7ea 4%,transparent)":"transparent")
+    }));
+
+    const comments = [
+      {initials:"RD",who:"R. Desai",when:"09:04",change:"…justification is provided in Section 3.2.P.5.6 → a justification narrative is provided in Section 3.2.P.5.6",text:"Reworded so the reference reads as a narrative, not a table. Please confirm 3.2.P.5.6 is the right anchor."},
+      {initials:"MP",who:"M. Patel · QA",when:"Yesterday",change:"",text:"Table 3.2.P.5.1-1 should carry the shelf-life column even where identical to release — FDA asked for this on ANDA 209-114."},
+      {initials:"AI",who:"AmFile suggestion",when:"09:12",change:"Q = 70 % at 24 h → Q = 75 % at 24 h (matching 3.2.P.2.3)",text:"Aligning the release criterion with the bio-batch profile clears finding CMC-114. Alternatively add a bridging rationale in 3.2.P.5.6."},
+      {initials:"SK",who:"S. Kulkarni",when:"2 Aug",change:"",text:"Microbial limits row: confirm TAMC unit is CFU per patch, not per gram."}
+    ].map((c,i)=>({...c,style:"padding:12px 13px;border-bottom:1px solid var(--dv2)"+(i===0?";background:color-mix(in srgb,#e4e7ea 4%,transparent);border-left:2px solid var(--color-accent)":"")}));
+
+    const chat = [
+      {role:"You",text:"What acceptance criterion did FDA accept for transdermal dissolution in the last five ANDAs, and did any of them get a deficiency on Q at 24 h?"},
+      {role:"AmFile",text:"Four of five set Q at 24 h between 70 % and 80 %; the fifth used a two-point profile (6 h and 24 h). Two received deficiencies — both because the release criterion did not match the dissolution profile of the pivotal bioequivalence batch, which is the same pattern flagged in your ¶2.",cites:["ANDA 209-114","ANDA 212-880","Rule CMC-114"]},
+      {role:"You",text:"Draft the bridging rationale I'd put in 3.2.P.5.6."},
+      {role:"AmFile",text:"Draft ready — three paragraphs referencing the profile comparison, the f2 similarity result from 3.2.P.2.3, and the batch analysis in 3.2.P.5.4. Insert at the cursor, or open side by side to compare with the current text.",cites:["Insert draft","Open side by side"]}
+    ].map(m => ({
+      role:m.role, text:m.text, cites:m.cites||null,
+      wrap: m.role==="You"
+        ? "align-self:flex-end;max-width:88%;padding:9px 11px;background:color-mix(in srgb,#749dc4 17%,transparent);border:1px solid color-mix(in srgb,#749dc4 34%,transparent)"
+        : "align-self:flex-start;max-width:95%;padding:9px 11px;border-left:2px solid var(--color-accent)",
+      who:"font-family:var(--font-heading);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mut2);margin-bottom:4px",
+      body:"font-size:12px;line-height:1.52;color:"+(m.role==="You"?"var(--ink)":"color-mix(in srgb,#e4e7ea 88%,transparent)")
+    }));
+
+    const chips = ["Precedent for this ¶","Explain rule CMC-114","Summarise 3.2.P.5","Cite ICH Q6A"];
+
+    const runRows = [
+      {code:"3.2.P.1",name:"Description and Composition",state:"Clear",findings:"0"},
+      {code:"3.2.P.2",name:"Pharmaceutical Development",state:"3 findings",findings:"1H 2M"},
+      {code:"3.2.P.3",name:"Manufacture",state:"2 findings",findings:"2M"},
+      {code:"3.2.P.4",name:"Control of Excipients",state:"Clear",findings:"0"},
+      {code:"3.2.P.5",name:"Control of Drug Product",state:"9 findings",findings:"2H 4M 3L"},
+      {code:"3.2.P.6",name:"Reference Standards or Materials",state:"Clear",findings:"0"},
+      {code:"3.2.P.7",name:"Container Closure System",state:"Detecting…",findings:"—"},
+      {code:"3.2.P.8",name:"Stability",state:"Parsing…",findings:"—"},
+      {code:"3.2.S.2",name:"Manufacture of Drug Substance",state:"Queued",findings:"—"},
+      {code:"3.2.S.4",name:"Control of Drug Substance",state:"Queued",findings:"—"},
+      {code:"3.2.A.2",name:"Adventitious Agents Safety",state:"Queued",findings:"—"}
+    ].map(r => {
+      const running = r.state.endsWith("…");
+      const clear = r.state==="Clear";
+      const queued = r.state==="Queued";
+      const col = running ? "var(--color-accent)" : clear ? "var(--mut2)" : queued ? "var(--mut2)" : (r.findings.includes("H") ? "var(--hi)" : "var(--med)");
+      return {...r, color:col,
+        dot: T.dot(col) + (running?";animation:amPulse 1.1s ease-in-out infinite":"") + (queued?";opacity:.4":""),
+        style:"display:flex;align-items:center;gap:10px;height:29px;padding:0 10px;border-bottom:1px solid var(--dv2);color:"+(queued?"var(--mut2)":"var(--ink)")+";background:"+(running?"color-mix(in srgb,#749dc4 9%,transparent)":"transparent")};
+    });
+
+    const crossDoc = [
+      {title:"Assay acceptance criterion stated three ways", sev:"high", rows:[
+        {where:"3.2.P.5",value:"90.0 – 110.0 % of label claim"},
+        {where:"3.2.P.8",value:"90.0 – 110.0 % (release), 85.0 – 115.0 % (shelf-life)"},
+        {where:"2.3.P",value:"85.0 – 115.0 % of label claim"}]},
+      {title:"Batch size disagrees between manufacture and stability", sev:"high", rows:[
+        {where:"3.2.P.3.2",value:"120,000 patches"},
+        {where:"3.2.P.8.1",value:"100,000 patches"}]},
+      {title:"Impurity D named differently across modules", sev:"medium", rows:[
+        {where:"3.2.S.3.2",value:"norethindrone-Δ4 isomer"},
+        {where:"3.2.P.5",value:"Impurity D"}]}
+    ].map(c => ({...c, dot:T.dot(SEV[c.sev])}));
+
+    const agentLog = [
+      {agent:"orchestrator", msg:"folder run started — 18 documents, 604 pages"},
+      {agent:"parse", msg:"3.2.P.7 → 12 sections, 3 tables, 1 figure"},
+      {agent:"parse", msg:"3.2.P.8 → OCR fallback on pp. 41-46"},
+      {agent:"router", msg:"routing 3.2.P.7 to container-closure detectors (4)"},
+      {agent:"detector.ccs", msg:"checking extractables & leachables coverage"},
+      {agent:"detector.spec", msg:"3.2.P.5 · 9 candidate findings → deliberation"},
+      {agent:"oracle", msg:"CMC-114 corroborated by 11 precedent deficiencies"},
+      {agent:"challenger", msg:"CMC-088 challenged — limits may be method-specific"},
+      {agent:"consistency", msg:"assay criterion mismatch across 3 documents"},
+      {agent:"consistency", msg:"batch size mismatch 3.2.P.3.2 ↔ 3.2.P.8.1"},
+      {agent:"vector", msg:"41 ANDAs searched · 128 neighbours retained"},
+      {agent:"orchestrator", msg:"11 of 18 complete · est. 9 min remaining"}
+    ].map((l,i,a) => ({...l, style:"opacity:"+(0.45 + 0.55*(i/(a.length-1)))}));
+
+    const startCards = [
+      {icon:I.folder, title:"Open submission folder", body:"Mount an eCTD tree from disk. AmFile mirrors m1–m5 and keeps file names untouched."},
+      {icon:I.page, title:"New document", body:"A4, Amneal CTD template, heading styles pre-mapped to the eCTD granularity."},
+      {icon:I.shield, title:"Compliance sweep", body:"Run the full-folder deficiency check. Estimates cost and time before it starts."}
+    ];
+
+    const recents = [
+      {anda:"ANDA 214-557", product:"CombiPatch — estradiol / norethindrone acetate TDS", meta:"Edited 12 min ago · 9 open"},
+      {anda:"ANDA 213-402", product:"Fluticasone propionate nasal spray", meta:"Yesterday · clear"},
+      {anda:"ANDA 212-880", product:"Rivastigmine transdermal system", meta:"2 Aug · 4 open"},
+      {anda:"NDA 216-119", product:"Amneal proprietary — oral suspension", meta:"28 Jul · archived"}
+    ].map((r,i) => ({...r, open:this.set("view","editor"),
+      style:"display:flex;align-items:center;gap:12px;height:34px;padding:0 11px;border-bottom:1px solid var(--dv2);cursor:pointer;color:"+(i===0?"var(--ink)":"var(--mut)")}));
+
+    const chipCtl = (on) => "font-family:var(--font-heading);font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:2px 8px;border:1px solid "+(on?"var(--color-accent)":"var(--dv)")+";color:"+(on?"var(--ink)":"var(--mut2)")+";flex:none";
+    const settingGroups = [
+      {name:"Compliance engine", items:[
+        {label:"Rulebook version", hint:"eCFR + internal deficiency rules", value:"v4.2 · locked", on:1},
+        {label:"Model", hint:"Runs on-device; nothing leaves the network", value:"Local · Mistral", on:1},
+        {label:"Check on save", hint:"Single-document check, cheap", value:"On", on:1},
+        {label:"Folder check confirmation", hint:"Show cost estimate before running", value:"Always", on:1}]},
+      {name:"Document defaults", items:[
+        {label:"Paper size", hint:"Applies to new documents", value:"A4 · 210 × 297 mm", on:0},
+        {label:"Body font", hint:"Amneal CTD template", value:"Times New Roman 11", on:0},
+        {label:"Track changes", hint:"Forced on for m3 documents", value:"On · all markup", on:1},
+        {label:"Autosave interval", hint:"To the mounted folder", value:"30 s", on:0}]},
+      {name:"Workspace", items:[
+        {label:"Theme", hint:"Follows macOS appearance", value:"Dark", on:1},
+        {label:"Submission root", hint:"Mounted read-write", value:"/Volumes/RA/ANDA", on:0},
+        {label:"Platform", hint:"Same build ships for Windows 11", value:"macOS 15.4", on:0}]},
+      {name:"Research companion", items:[
+        {label:"Precedent index", hint:"Historical FDA deficiency letters", value:"41 ANDAs", on:0},
+        {label:"Citations required", hint:"Answers must anchor to a source", value:"Enforced", on:1},
+        {label:"Insert without review", hint:"Drafts always land as tracked changes", value:"Off", on:0}]}
+    ].map(g => ({name:g.name, items:g.items.map(i => ({...i, controlStyle:chipCtl(i.on)}))}));
+
+    return {
+      tabs, ribbon, ribbonOpen:s.ribbonOpen, toggleRibbon:()=>this.setState({ribbonOpen:!s.ribbonOpen}),
+      treeTabs, tree, dockTabs, rulerTicks, specRows, margins, findings, comments, chat, chips,
+      runRows, crossDoc, agentLog, startCards, recents, settingGroups,
+      startFolderRun:this.set("view","folder"),
+      isEditor:s.view==="editor", isFolder:s.view==="folder", isWelcome:s.view==="welcome", isSettings:s.view==="settings",
+      dockChat:s.dock==="chat", dockCompliance:s.dock==="compliance", dockComments:s.dock==="comments",
+      leftOpen:s.leftOpen, leftClosed:!s.leftOpen, dockOpen:s.dockOpen, dockClosed:!s.dockOpen,
+      toggleLeft:()=>this.setState({leftOpen:!s.leftOpen}),
+      toggleDock:()=>this.setState({dockOpen:!s.dockOpen})
+    };
+  }
+}
+
+</script>
+</body>
+</html>
