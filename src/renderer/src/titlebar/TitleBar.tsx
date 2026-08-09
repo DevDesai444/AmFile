@@ -9,6 +9,10 @@ export default function TitleBar(): React.JSX.Element {
   const savedAt = useDocumentStore((s) => s.savedAt)
   const dirty = useDocumentStore((s) => s.dirty)
 
+  // macOS draws its own traffic lights inset into this bar, so the renderer must not
+  // add a second set — it only draws window controls on Windows/Linux.
+  const isMac = window.amfile?.platform === 'darwin'
+
   useEffect(() => {
     if (!window.amfile) return
     window.amfile.window.isMaximized().then(setIsMaximized)
@@ -16,7 +20,7 @@ export default function TitleBar(): React.JSX.Element {
   }, [])
 
   return (
-    <div className="titlebar">
+    <div className={`titlebar${isMac ? ' titlebar--mac' : ''}`}>
       <div className="titlebar-drag titlebar-left">
         <img src={logo} alt="Amneal" className="titlebar-logo" />
         <div className="titlebar-divider" />
@@ -40,22 +44,24 @@ export default function TitleBar(): React.JSX.Element {
           <span>Search</span>
         </button>
         <div className="titlebar-avatar">RD</div>
-        <div className="titlebar-winctl">
-          <button type="button" aria-label="Minimize" onClick={() => window.amfile.window.minimize()}>
-            <Minus size={13} strokeWidth={1.5} />
-          </button>
-          <button type="button" aria-label="Maximize" onClick={() => window.amfile.window.maximizeToggle()}>
-            {isMaximized ? <Copy size={11} strokeWidth={1.5} /> : <Square size={11} strokeWidth={1.5} />}
-          </button>
-          <button
-            type="button"
-            aria-label="Close"
-            className="titlebar-winctl-close"
-            onClick={() => window.amfile.window.close()}
-          >
-            <X size={13} strokeWidth={1.5} />
-          </button>
-        </div>
+        {!isMac && (
+          <div className="titlebar-winctl">
+            <button type="button" aria-label="Minimize" onClick={() => window.amfile.window.minimize()}>
+              <Minus size={13} strokeWidth={1.5} />
+            </button>
+            <button type="button" aria-label="Maximize" onClick={() => window.amfile.window.maximizeToggle()}>
+              {isMaximized ? <Copy size={11} strokeWidth={1.5} /> : <Square size={11} strokeWidth={1.5} />}
+            </button>
+            <button
+              type="button"
+              aria-label="Close"
+              className="titlebar-winctl-close"
+              onClick={() => window.amfile.window.close()}
+            >
+              <X size={13} strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

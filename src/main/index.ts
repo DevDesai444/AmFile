@@ -16,7 +16,11 @@ function createMainWindow(): BrowserWindow {
     minHeight: 620,
     show: false,
     backgroundColor: '#0f1113',
-    frame: false,
+    // macOS keeps its native traffic lights (top-left, inset into our title bar);
+    // Windows/Linux get a frameless window and the renderer's own controls top-right.
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 12 } }
+      : { frame: false }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,

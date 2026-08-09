@@ -19,6 +19,10 @@
   border-bottom: 1px solid var(--dv);
   -webkit-app-region: drag;
 }
+/* Leaves room for macOS's native traffic lights, which sit inside this bar. */
+.titlebar--mac {
+  padding-left: 88px;
+}
 .titlebar-drag {
   -webkit-app-region: drag;
 }

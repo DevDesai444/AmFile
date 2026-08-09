@@ -5,6 +5,7 @@ import type { StreamChunk } from '../main/services/ai/AiProvider'
 import type { FsTreeNode } from '../main/services/fs/tree'
 
 const amfileApi = {
+  platform: process.platform,
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximizeToggle: () => ipcRenderer.invoke('window:maximizeToggle'),
