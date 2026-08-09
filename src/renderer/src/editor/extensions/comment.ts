@@ -16,10 +16,13 @@ export const CommentMark = Mark.create({
   inclusive: false,
 
   addAttributes() {
+    // Null defaults, not factories — Tiptap evaluates a function `default` once at
+    // schema-build time, which would freeze one timestamp for the entire session.
+    // insertComment.ts passes real values explicitly on every comment.
     return {
       commentId: { default: null },
-      authorName: { default: 'You' },
-      timestamp: { default: () => new Date().toISOString() }
+      authorName: { default: null },
+      timestamp: { default: null }
     }
   },
 
