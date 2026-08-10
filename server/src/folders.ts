@@ -130,9 +130,10 @@ export async function createFolder(
   if (parentId) {
     const access = await effectiveAccess(user.id, parentId)
     if (!atLeast(access, 'editor')) return { error: 'You do not have rights to create folders here.' }
-  } else if (!user.roles.includes('admin')) {
-    return { error: 'Only an administrator can create a top-level folder.' }
   }
+  // A top-level folder is a project, and anyone may start one — they become its owner and
+  // decide who else gets in. Requiring an administrator here made "create a project" a
+  // privileged act, which is not how the product is meant to work.
 
   const existing = await queryOne<{ id: string }>(
     parentId

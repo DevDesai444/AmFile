@@ -157,7 +157,6 @@ export default function FolderTree(): React.JSX.Element {
   const error = useFolderStore((s) => s.error)
   const refresh = useFolderStore((s) => s.refresh)
   const createFolder = useFolderStore((s) => s.createFolder)
-  const me = useSessionStore((s) => s.user)
   const [busy, setBusy] = useState(false)
 
   if (error) {
@@ -186,23 +185,21 @@ export default function FolderTree(): React.JSX.Element {
       ))}
 
       <div className="tree-actions">
-        {me?.roles.includes('admin') && (
-          <button
-            type="button"
-            className="tree-refresh"
-            disabled={busy}
-            onClick={async () => {
-              const name = window.prompt('New top-level folder')
-              if (!name) return
-              setBusy(true)
-              await createFolder(name, null)
-              setBusy(false)
-            }}
-          >
-            <FolderPlus size={11} strokeWidth={1.5} />
-            New folder
-          </button>
-        )}
+        <button
+          type="button"
+          className="tree-refresh"
+          disabled={busy}
+          onClick={async () => {
+            const name = window.prompt('Name your new project')
+            if (!name) return
+            setBusy(true)
+            await createFolder(name, null)
+            setBusy(false)
+          }}
+        >
+          <FolderPlus size={11} strokeWidth={1.5} />
+          New project
+        </button>
         <button type="button" className="tree-refresh" onClick={() => void refresh()}>
           <RefreshCw size={11} strokeWidth={1.5} />
           Refresh

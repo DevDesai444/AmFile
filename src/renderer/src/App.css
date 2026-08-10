@@ -1672,6 +1672,24 @@
 .welcome-action-card span {
   font-size: 12px;
 }
+.welcome-action-hint {
+  font-size: 9.5px !important;
+  color: var(--mut2);
+  text-align: center;
+  padding: 0 8px;
+  line-height: 1.3;
+}
+.welcome-action-card {
+  height: 118px;
+}
+.welcome-empty-hint {
+  margin-top: 22px;
+  max-width: 380px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--mut2);
+}
 
 /* ---------- Login ---------- */
 .login-view {

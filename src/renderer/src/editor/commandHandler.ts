@@ -1,9 +1,12 @@
 import type { Editor } from '@tiptap/core'
 import type { ParagraphStyleName } from './extensions/paragraphStyle'
 import { useDocumentStore } from '../store/documentStore'
-import { useOutlineStore } from '../store/outlineStore'
-import { insertComment } from './insertComment'
-import { notImplemented } from '../common/toastStore'
+import { notImplemented, useToastStore } from '../common/toastStore'
+import { handleInsertCommand } from './commands/insertCommands'
+import { handleLayoutCommand } from './commands/layoutCommands'
+import { handleDesignCommand } from './commands/designCommands'
+import { handleReferenceCommand } from './commands/referenceCommands'
+import { handleReviewCommand } from './commands/reviewCommands'
 
 const LINE_SPACINGS = [1, 1.15, 1.5, 2]
 
@@ -25,8 +28,33 @@ function setParagraphStyle(editor: Editor, styleName: ParagraphStyleName): void 
   chain.setParagraph().updateAttributes('paragraph', { styleName }).run()
 }
 
+/** Commands owned by EditorCanvas (save, print, find, image) — resolved before this runs. */
+const HANDLED_UPSTREAM = new Set([
+  'save',
+  'print',
+  'compliance.checkDocument',
+  'compliance.checkFolder',
+  'insert.image',
+  'edit.find',
+  'edit.replace'
+])
+
+/**
+ * Ribbon groups that own a slice of the command space. Each returns true when it recognised
+ * the command. Splitting them out keeps this file a dispatcher rather than a 900-line switch,
+ * and — more importantly — means a new command only has to be added in one place instead of
+ * being implemented here and separately allow-listed in ribbonActions.
+ */
+const GROUP_HANDLERS = [
+  handleInsertCommand,
+  handleLayoutCommand,
+  handleDesignCommand,
+  handleReferenceCommand,
+  handleReviewCommand
+]
+
 export function handleEditorCommand(editor: Editor, command: string, payload?: unknown): void {
-  const chain = () => editor.chain().focus()
+  const chain = (): ReturnType<Editor['chain']> => editor.chain().focus()
 
   switch (command) {
     case 'mark.bold':
@@ -125,21 +153,13 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
       setParagraphStyle(editor, 'reference')
       return
 
-    case 'insert.table':
-      chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-      return
-    case 'insert.pageBreak':
-    case 'insert.blankPage':
-      chain().setPageBreak().run()
-      return
     case 'insert.link': {
       const url = window.prompt('Link URL')
       if (url) chain().setLink({ href: url }).run()
       return
     }
     case 'insert.comment':
-    case 'comment.new':
-      insertComment(editor)
+      handleReviewCommand(editor, 'comment.new')
       return
     case 'insert.header': {
       const text = window.prompt('Header text', useDocumentStore.getState().headerText)
@@ -152,31 +172,6 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
       if (text !== null) useDocumentStore.getState().setFooterText(text)
       return
     }
-    case 'toc.addText':
-    case 'toc.update': {
-      const headings = useOutlineStore.getState().headings
-      if (headings.length === 0) {
-        window.alert('Add some headings first — the table of contents lists them.')
-        return
-      }
-      const items = headings.map((h) => ({
-        type: 'paragraph',
-        attrs: { indent: Math.max(h.level - 1, 0) },
-        content: [{ type: 'text', text: h.text || 'Untitled heading' }]
-      }))
-      chain().insertContent(items).run()
-      return
-    }
-
-    case 'layout.orientation':
-      useDocumentStore.getState().cycleOrientation()
-      return
-    case 'layout.margins':
-      useDocumentStore.getState().cycleMargins()
-      return
-    case 'layout.sizeA4':
-      useDocumentStore.setState((s) => ({ pageSetup: { ...s.pageSetup, size: 'A4' }, dirty: true }))
-      return
 
     case 'edit.cut':
       document.execCommand('cut')
@@ -184,29 +179,56 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
     case 'edit.copy':
       document.execCommand('copy')
       return
+    case 'edit.paste': {
+      // Electron's renderer can read the system clipboard directly; execCommand('paste') is
+      // blocked, which is why this button previously did nothing at all.
+      void navigator.clipboard
+        .readText()
+        .then((text) => {
+          if (text) chain().insertContent(text).run()
+        })
+        .catch(() => notImplemented('Paste'))
+      return
+    }
     case 'edit.select':
       chain().selectAll().run()
       return
-
-    case 'review.wordCount': {
-      const words = editor.storage.characterCount?.words?.() ?? 0
-      const chars = editor.storage.characterCount?.characters?.() ?? 0
-      window.alert(`${words} words, ${chars} characters`)
-      return
-    }
-
-    case 'save':
-    case 'print':
-    case 'compliance.checkDocument':
-    case 'compliance.checkFolder':
-    case 'insert.image':
-      // Handled by ribbonActions / EditorCanvas save wiring, not the editor itself.
+    case 'edit.formatPainter':
+      copyOrApplyFormatting(editor)
       return
 
     default: {
+      if (HANDLED_UPSTREAM.has(command)) return
+      for (const handler of GROUP_HANDLERS) {
+        if (handler(editor, command)) return
+      }
       const leaf = command.includes('.') ? command.slice(command.indexOf('.') + 1) : command
       const label = leaf.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
       notImplemented(label.charAt(0).toUpperCase() + label.slice(1))
     }
   }
+}
+
+/** Format painter: first click copies the marks at the cursor, second click applies them. */
+let copiedMarks: Array<{ type: string; attrs: Record<string, unknown> }> | null = null
+
+function copyOrApplyFormatting(editor: Editor): void {
+  const { empty, from, to } = editor.state.selection
+  if (!copiedMarks || empty) {
+    const marks = editor.state.selection.$from.marks()
+    copiedMarks = marks.map((m) => ({ type: m.type.name, attrs: { ...m.attrs } }))
+    toast(
+      `Formatting copied — select the text to paint${copiedMarks.length === 0 ? ' (no formatting at the cursor)' : ''}.`
+    )
+    return
+  }
+  const chain = editor.chain().focus().setTextSelection({ from, to }).unsetAllMarks()
+  for (const mark of copiedMarks) chain.setMark(mark.type, mark.attrs)
+  chain.run()
+  copiedMarks = null
+  toast('Formatting applied.')
+}
+
+function toast(message: string): void {
+  useToastStore.getState().push(message)
 }

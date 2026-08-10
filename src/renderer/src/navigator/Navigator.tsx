@@ -44,7 +44,15 @@ export default function Navigator(): React.JSX.Element {
           </button>
         </div>
         <div className="navigator-header-spacer" />
-        <button type="button" aria-label="New document" onClick={() => runRibbonAction('file.new')}>
+        <button
+          type="button"
+          aria-label="New project"
+          title="New project"
+          onClick={async () => {
+            const name = window.prompt('Name your new project')
+            if (name) await useFolderStore.getState().createFolder(name, null)
+          }}
+        >
           <Plus size={13} strokeWidth={1.5} />
         </button>
         <button type="button" aria-label="Collapse navigator" onClick={toggleLeft}>
