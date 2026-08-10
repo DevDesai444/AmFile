@@ -12,7 +12,7 @@
     "build": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "tsx tests/docx-fidelity.test.ts && tsx tests/document-diff.test.ts && tsx tests/ribbon-commands.test.ts",
+    "test": "tsx tests/csp.test.ts && tsx tests/docx-fidelity.test.ts && tsx tests/document-diff.test.ts && tsx tests/ribbon-commands.test.ts",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win"
   },
