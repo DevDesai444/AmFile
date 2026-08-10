@@ -912,6 +912,122 @@
   border-color: var(--color-accent);
 }
 
+/* ---------- Audit panel ---------- */
+.audit-panel {
+  padding: 10px 12px;
+  overflow-y: auto;
+  height: 100%;
+}
+.audit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.audit-icon-btn {
+  color: var(--mut2);
+  padding: 4px;
+}
+.audit-icon-btn:hover {
+  color: var(--ink);
+}
+.audit-verify-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid var(--dv);
+  color: var(--mut);
+  font-size: 11px;
+}
+.audit-verify-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--ink);
+}
+.audit-chain {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 8px;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+.audit-chain--ok {
+  border: 1px solid color-mix(in srgb, var(--low) 45%, transparent);
+  background: color-mix(in srgb, var(--low) 10%, transparent);
+  color: var(--low);
+}
+.audit-chain--broken {
+  border: 1px solid color-mix(in srgb, var(--hi) 50%, transparent);
+  background: color-mix(in srgb, var(--hi) 12%, transparent);
+  color: var(--hi);
+}
+.audit-section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-label);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mut2);
+  margin: 16px 0 7px;
+}
+.audit-history-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--dv2);
+  font-size: 11px;
+}
+.audit-rev {
+  font-family: var(--font-label);
+  color: var(--color-accent);
+  flex: none;
+  width: 28px;
+}
+.audit-author {
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audit-time {
+  color: var(--mut2);
+  font-size: 10px;
+  flex: none;
+}
+.audit-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--dv2);
+}
+.audit-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.audit-entry-action {
+  font-size: 11.5px;
+  color: var(--ink);
+}
+.audit-entry-meta {
+  font-size: 10.5px;
+  color: var(--mut2);
+  margin-top: 2px;
+}
+.audit-entry-reason {
+  font-family: var(--font-label);
+  font-style: italic;
+  font-size: 10.5px;
+  color: var(--mut);
+  margin-top: 3px;
+}
+
 /* ---------- Status bar ---------- */
 .statusbar {
   height: var(--statusbar-h);
