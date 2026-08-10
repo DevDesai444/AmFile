@@ -1169,6 +1169,12 @@
   justify-content: center;
 }
 /* ---------- Prompt (replaces window.prompt, which Electron refuses to run) ---------- */
+.proposal-awaiting {
+  font-size: 10.5px;
+  color: var(--mut2);
+  font-style: italic;
+}
+
 .prompt-dialog {
   width: 420px;
   padding: 20px;

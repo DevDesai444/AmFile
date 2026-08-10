@@ -3,6 +3,7 @@ import { Check, X, MessageSquare, AlertTriangle, RefreshCw, GitPullRequest } fro
 import { askText } from '../common/promptStore'
 import { api, type Proposal, type ProposalReview, type ProposalComment } from '../api/client'
 import { useDocumentStore } from '../store/documentStore'
+import { useFolderStore } from '../store/folderStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useToastStore } from '../common/toastStore'
 import { useProposalStore } from '../store/proposalStore'
@@ -32,7 +33,26 @@ function DiffView({ review }: { review: ProposalReview }): React.JSX.Element {
   )
 }
 
+/**
+ * Whether the signed-in user owns the project this proposal belongs to.
+ *
+ * Only owners resolve proposals — that is the whole point of proposing rather than saving. The
+ * document id carries its project ("owner/repo:path"), so the answer comes from the folder tree
+ * without another API call.
+ *
+ * Worth being precise about what this is: it hides the buttons, it does not enforce the rule.
+ * GitHub's write permission permits merging a pull request, so an editor determined to bypass
+ * review could still do it through github.com. Enforcing it properly needs a branch protection
+ * rule requiring review on the default branch, which on private repositories is a paid feature.
+ */
+function useIsProjectOwner(documentId: string): boolean {
+  const folders = useFolderStore((s) => s.folders)
+  const repo = documentId.split(':')[0]
+  return folders.some((f) => f.id === repo && f.access === 'owner')
+}
+
 function ProposalCard({ p, onChanged }: { p: Proposal; onChanged: () => void }): React.JSX.Element {
+  const canResolve = useIsProjectOwner(p.documentId)
   const me = useSessionStore((s) => s.user)
   const push = useToastStore((s) => s.push)
   const [review, setReview] = useState<ProposalReview | null>(null)
@@ -130,7 +150,8 @@ function ProposalCard({ p, onChanged }: { p: Proposal; onChanged: () => void }):
           <MessageSquare size={12} strokeWidth={1.5} />
           Discuss{p.commentCount > 0 ? ` (${p.commentCount})` : ''}
         </button>
-        {open && (
+        {open && !canResolve && <span className="proposal-awaiting">Waiting for an owner to review</span>}
+        {open && canResolve && (
           <>
             <button
               type="button"
