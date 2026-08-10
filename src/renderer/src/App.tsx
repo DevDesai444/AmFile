@@ -20,6 +20,7 @@ import { useComplianceStore } from './store/complianceStore'
 import { useSessionStore } from './store/sessionStore'
 import { useServerDocsStore } from './store/serverDocsStore'
 import { connectEvents } from './api/client'
+import Toaster from './common/Toaster'
 
 export default function App(): React.JSX.Element {
   const view = useUiStore((s) => s.view)
@@ -102,6 +103,7 @@ export default function App(): React.JSX.Element {
         <Dock />
       </div>
       <StatusBar />
+      <Toaster />
     </div>
   )
 }

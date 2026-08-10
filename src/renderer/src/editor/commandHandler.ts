@@ -3,6 +3,7 @@ import type { ParagraphStyleName } from './extensions/paragraphStyle'
 import { useDocumentStore } from '../store/documentStore'
 import { useOutlineStore } from '../store/outlineStore'
 import { insertComment } from './insertComment'
+import { notImplemented } from '../common/toastStore'
 
 const LINE_SPACINGS = [1, 1.15, 1.5, 2]
 
@@ -202,7 +203,10 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
       // Handled by ribbonActions / EditorCanvas save wiring, not the editor itself.
       return
 
-    default:
-      console.info(`[editor] command "${command}" not implemented yet`)
+    default: {
+      const leaf = command.includes('.') ? command.slice(command.indexOf('.') + 1) : command
+      const label = leaf.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      notImplemented(label.charAt(0).toUpperCase() + label.slice(1))
+    }
   }
 }

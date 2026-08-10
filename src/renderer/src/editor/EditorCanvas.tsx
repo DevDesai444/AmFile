@@ -147,7 +147,7 @@ export default function EditorCanvas(): React.JSX.Element {
   useEffect(() => {
     if (!editor || resetToken === 0) return
     editor.commands.setContent('<p></p>')
-    useCommentStore.setState({ comments: [] })
+    useCommentStore.getState().clear()
   }, [editor, resetToken])
 
   useEffect(() => {

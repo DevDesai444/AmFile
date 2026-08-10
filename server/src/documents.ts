@@ -287,3 +287,85 @@ export async function documentHistory(documentId: string): Promise<
     contentHash: r.content_hash
   }))
 }
+
+export interface CommentRow {
+  id: string
+  markId: string
+  quotedText: string
+  body: string
+  authorName: string
+  createdAt: string
+  resolvedAt: string | null
+}
+
+export async function listComments(documentId: string): Promise<CommentRow[]> {
+  const rows = await query<{
+    id: string
+    mark_id: string
+    quoted_text: string
+    body: string
+    display_name: string
+    created_at: Date
+    resolved_at: Date | null
+  }>(
+    `SELECT c.id, c.mark_id, c.quoted_text, c.body, u.display_name, c.created_at, c.resolved_at
+       FROM comments c JOIN users u ON u.id = c.author_id
+      WHERE c.document_id = $1 ORDER BY c.created_at`,
+    [documentId]
+  )
+  return rows.map((r) => ({
+    id: r.id,
+    markId: r.mark_id,
+    quotedText: r.quoted_text,
+    body: r.body,
+    authorName: r.display_name,
+    createdAt: r.created_at.toISOString(),
+    resolvedAt: r.resolved_at?.toISOString() ?? null
+  }))
+}
+
+export async function addComment(
+  user: SessionUser,
+  documentId: string,
+  markId: string,
+  quotedText: string,
+  body: string
+): Promise<void> {
+  await query(
+    `INSERT INTO comments (document_id, mark_id, quoted_text, body, author_id)
+     VALUES ($1,$2,$3,$4,$5) ON CONFLICT (document_id, mark_id) DO NOTHING`,
+    [documentId, markId, quotedText, body, user.id]
+  )
+  await writeAudit({
+    userId: user.id,
+    printedName: user.displayName,
+    action: 'comment.added',
+    documentId,
+    newValue: { markId, quotedText: quotedText.slice(0, 200) }
+  })
+}
+
+export async function resolveComment(user: SessionUser, documentId: string, markId: string): Promise<void> {
+  await query(
+    'UPDATE comments SET resolved_at = now(), resolved_by = $3 WHERE document_id = $1 AND mark_id = $2',
+    [documentId, markId, user.id]
+  )
+  await writeAudit({
+    userId: user.id,
+    printedName: user.displayName,
+    action: 'comment.resolved',
+    documentId,
+    newValue: { markId }
+  })
+}
+
+export async function deleteComment(user: SessionUser, documentId: string, markId: string): Promise<void> {
+  await query('DELETE FROM comments WHERE document_id = $1 AND mark_id = $2', [documentId, markId])
+  await writeAudit({
+    userId: user.id,
+    printedName: user.displayName,
+    action: 'comment.deleted',
+    documentId,
+    oldValue: { markId }
+  })
+}

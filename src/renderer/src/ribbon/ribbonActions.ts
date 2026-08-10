@@ -2,6 +2,7 @@ import { useUiStore } from '../store/uiStore'
 import { useDocumentStore } from '../store/documentStore'
 import { useTreeStore } from '../store/treeStore'
 import { runEditorCommand } from './editorCommandRegistry'
+import { notImplemented } from '../common/toastStore'
 
 const EDITOR_COMMAND_PREFIXES = ['mark.', 'font.', 'align.', 'list.', 'paragraph.', 'style.', 'insert.', 'edit.', 'track.']
 
@@ -77,6 +78,15 @@ export async function runRibbonAction(act: string): Promise<void> {
         runEditorCommand(act)
         return
       }
-      console.info(`[ribbon] "${act}" is not wired yet`)
+      // Anything still unbuilt says so out loud. A ribbon button that looks live and does
+      // nothing is worse than one that admits it isn't finished.
+      notImplemented(featureName(act))
   }
+}
+
+/** Turn an action id like `mailings.startMerge` into "Start merge" for the toast. */
+function featureName(act: string): string {
+  const leaf = act.includes('.') ? act.slice(act.indexOf('.') + 1) : act
+  const spaced = leaf.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[._]/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }

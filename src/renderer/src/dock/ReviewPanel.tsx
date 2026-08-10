@@ -47,11 +47,11 @@ export default function ReviewPanel(): React.JSX.Element {
           <div className="review-change-text">{c.body}</div>
           <div className="review-change-actions">
             {!c.resolved && (
-              <button type="button" onClick={() => resolveComment(c.id)}>
+              <button type="button" onClick={() => void resolveComment(c.id)}>
                 Resolve
               </button>
             )}
-            <button type="button" onClick={() => removeComment(c.id)}>
+            <button type="button" onClick={() => void removeComment(c.id)}>
               Delete
             </button>
           </div>

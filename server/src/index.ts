@@ -11,7 +11,11 @@ import {
   acquireLock,
   releaseLock,
   heartbeatLock,
-  documentHistory
+  documentHistory,
+  listComments,
+  addComment,
+  resolveComment,
+  deleteComment
 } from './documents.js'
 import { writeAudit, verifyAuditChain } from './audit.js'
 import { query } from './db.js'
@@ -194,6 +198,45 @@ app.post('/api/documents/:id/heartbeat', async (req, reply) => {
   if (!user) return
   const { id } = req.params as { id: string }
   return { held: await heartbeatLock(user, id) }
+})
+
+// ----------------------------------------------------------------------------- comments
+app.get('/api/documents/:id/comments', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  return { comments: await listComments(id) }
+})
+
+app.post('/api/documents/:id/comments', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const body = z
+    .object({ markId: z.string().min(1), quotedText: z.string(), body: z.string().min(1) })
+    .safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'markId, quotedText and body are required.' })
+  await addComment(user, id, body.data.markId, body.data.quotedText, body.data.body)
+  broadcast('comments:changed', { documentId: id }, user.id)
+  return { ok: true }
+})
+
+app.post('/api/documents/:id/comments/:markId/resolve', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id, markId } = req.params as { id: string; markId: string }
+  await resolveComment(user, id, markId)
+  broadcast('comments:changed', { documentId: id }, user.id)
+  return { ok: true }
+})
+
+app.delete('/api/documents/:id/comments/:markId', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id, markId } = req.params as { id: string; markId: string }
+  await deleteComment(user, id, markId)
+  broadcast('comments:changed', { documentId: id }, user.id)
+  return { ok: true }
 })
 
 // -------------------------------------------------------------------------------- audit

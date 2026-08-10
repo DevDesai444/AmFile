@@ -3,6 +3,7 @@ import type { Editor, JSONContent } from '@tiptap/core'
 import { api, ApiError } from '../api/client'
 import { useDocumentStore } from '../store/documentStore'
 import { useServerDocsStore } from '../store/serverDocsStore'
+import { useCommentStore } from '../store/commentStore'
 
 /** Renew the lock well inside the server's 90s lease so a slow network doesn't drop it. */
 const HEARTBEAT_MS = 30_000
@@ -45,6 +46,7 @@ export function useServerDocument(editor: Editor | null): {
           const holder = err instanceof ApiError ? (err.body as { lockedBy?: string } | null)?.lockedBy : undefined
           setLockState(false, holder ?? 'another user')
         }
+        await useCommentStore.getState().loadForDocument(id)
         clearPendingUpdate()
       } catch (err) {
         window.alert(err instanceof Error ? err.message : 'Could not open that document.')

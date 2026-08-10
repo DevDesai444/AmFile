@@ -160,6 +160,31 @@ export const api = {
 
   heartbeat: (id: string) => request<{ held: boolean }>(`/api/documents/${id}/heartbeat`, { method: 'POST' }),
 
+  listComments: (documentId: string) =>
+    request<{
+      comments: Array<{
+        id: string
+        markId: string
+        quotedText: string
+        body: string
+        authorName: string
+        createdAt: string
+        resolvedAt: string | null
+      }>
+    }>(`/api/documents/${documentId}/comments`),
+
+  addComment: (documentId: string, markId: string, quotedText: string, body: string) =>
+    request<{ ok: true }>(`/api/documents/${documentId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ markId, quotedText, body })
+    }),
+
+  resolveComment: (documentId: string, markId: string) =>
+    request<{ ok: true }>(`/api/documents/${documentId}/comments/${markId}/resolve`, { method: 'POST' }),
+
+  deleteComment: (documentId: string, markId: string) =>
+    request<{ ok: true }>(`/api/documents/${documentId}/comments/${markId}`, { method: 'DELETE' }),
+
   audit: (documentId?: string) =>
     request<{ entries: AuditEntry[] }>(`/api/audit${documentId ? `?documentId=${documentId}` : ''}`),
 

@@ -15,7 +15,9 @@ export function insertComment(editor: Editor): void {
   const timestamp = new Date().toISOString()
 
   editor.chain().focus().setComment({ commentId, authorName: 'You', timestamp }).run()
-  useCommentStore.getState().addComment({ id: commentId, quotedText, body, authorName: 'You', timestamp, resolved: false })
+  void useCommentStore
+    .getState()
+    .addComment({ id: commentId, quotedText, body, authorName: 'You', timestamp, resolved: false })
 }
 
 export function registerCommentDeleteHandler(editor: Editor): () => void {
