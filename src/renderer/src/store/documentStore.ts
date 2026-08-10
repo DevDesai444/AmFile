@@ -21,6 +21,21 @@ export const DEFAULT_PAGE_SETUP: PageSetup = {
   columns: 1
 }
 
+export interface DocumentTheme {
+  name: string
+  bodyFont: string
+  headingFont: string
+  accent: string
+}
+
+export const THEMES: Record<'amnealCtd' | 'ectdPlain', DocumentTheme> = {
+  amnealCtd: { name: 'Amneal CTD', bodyFont: 'Times New Roman', headingFont: 'Barlow Semi Condensed', accent: '#749dc4' },
+  ectdPlain: { name: 'eCTD plain', bodyFont: 'Arial', headingFont: 'Arial', accent: '#555555' }
+}
+
+export const ACCENT_PALETTES = ['#749dc4', '#c98b6b', '#6b9c7a', '#8b7bb8', '#b8836b']
+export const PARAGRAPH_SPACINGS = [0, 6, 12, 18]
+
 interface DocumentState {
   filePath: string | null
   fileName: string | null
@@ -29,6 +44,19 @@ interface DocumentState {
   pageSetup: PageSetup
   trackChangesEnabled: boolean
   zoom: number
+  /** Design tab — presentation only, not part of the docx model. */
+  theme: DocumentTheme
+  accent: string
+  paragraphSpacingPt: number
+  shadowEffects: boolean
+  watermark: string
+  pageColor: string | null
+  pageBorders: boolean
+  lineNumbers: boolean
+  /** Review → Restrict editing. Makes the editor read-only without a server lock. */
+  restrictEditing: boolean
+  spellcheck: boolean
+  language: string
   pendingOpenPath: string | null
   /** Server document requested from the tree; EditorCanvas loads it. */
   pendingOpenServerDocId: string | null
@@ -63,6 +91,19 @@ interface DocumentState {
   setFooterText: (text: string) => void
   cycleOrientation: () => void
   cycleMargins: () => void
+  setTheme: (key: keyof typeof THEMES) => DocumentTheme
+  cycleAccent: () => string
+  cycleParagraphSpacing: () => number
+  toggleShadowEffects: () => boolean
+  setWatermark: (text: string) => void
+  setPageColor: (color: string | null) => void
+  togglePageBorders: () => boolean
+  toggleLineNumbers: () => boolean
+  toggleRestrictEditing: () => boolean
+  toggleSpellcheck: () => boolean
+  setLanguage: (language: string) => void
+  cycleColumns: () => number
+  setColumns: (columns: number) => void
 }
 
 const MARGIN_PRESETS: Array<{ name: string; mm: number }> = [
@@ -75,7 +116,7 @@ function formatSavedTime(date: Date): string {
   return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
-export const useDocumentStore = create<DocumentState>((set) => ({
+export const useDocumentStore = create<DocumentState>((set, get) => ({
   filePath: null,
   fileName: null,
   dirty: false,
@@ -83,6 +124,17 @@ export const useDocumentStore = create<DocumentState>((set) => ({
   pageSetup: DEFAULT_PAGE_SETUP,
   trackChangesEnabled: false,
   zoom: 100,
+  theme: THEMES.amnealCtd,
+  accent: ACCENT_PALETTES[0],
+  paragraphSpacingPt: 6,
+  shadowEffects: false,
+  watermark: '',
+  pageColor: null,
+  pageBorders: false,
+  lineNumbers: false,
+  restrictEditing: false,
+  spellcheck: true,
+  language: 'English (US)',
   pendingOpenPath: null,
   pendingOpenServerDocId: null,
   documentId: null,
@@ -154,7 +206,57 @@ export const useDocumentStore = create<DocumentState>((set) => ({
         },
         dirty: true
       }
-    })
+    }),
+
+  setTheme: (key) => {
+    const theme = THEMES[key]
+    set({ theme, accent: theme.accent, dirty: true })
+    return theme
+  },
+  cycleAccent: () => {
+    const accent = ACCENT_PALETTES[(ACCENT_PALETTES.indexOf(get().accent) + 1) % ACCENT_PALETTES.length]
+    set({ accent, dirty: true })
+    return accent
+  },
+  cycleParagraphSpacing: () => {
+    const next = PARAGRAPH_SPACINGS[(PARAGRAPH_SPACINGS.indexOf(get().paragraphSpacingPt) + 1) % PARAGRAPH_SPACINGS.length]
+    set({ paragraphSpacingPt: next, dirty: true })
+    return next
+  },
+  toggleShadowEffects: () => {
+    const shadowEffects = !get().shadowEffects
+    set({ shadowEffects })
+    return shadowEffects
+  },
+  setWatermark: (watermark) => set({ watermark, dirty: true }),
+  setPageColor: (pageColor) => set({ pageColor, dirty: true }),
+  togglePageBorders: () => {
+    const pageBorders = !get().pageBorders
+    set({ pageBorders, dirty: true })
+    return pageBorders
+  },
+  toggleLineNumbers: () => {
+    const lineNumbers = !get().lineNumbers
+    set({ lineNumbers })
+    return lineNumbers
+  },
+  toggleRestrictEditing: () => {
+    const restrictEditing = !get().restrictEditing
+    set({ restrictEditing })
+    return restrictEditing
+  },
+  toggleSpellcheck: () => {
+    const spellcheck = !get().spellcheck
+    set({ spellcheck })
+    return spellcheck
+  },
+  setLanguage: (language) => set({ language }),
+  cycleColumns: () => {
+    const columns = (get().pageSetup.columns % 3) + 1
+    set((s) => ({ pageSetup: { ...s.pageSetup, columns }, dirty: true }))
+    return columns
+  },
+  setColumns: (columns) => set((s) => ({ pageSetup: { ...s.pageSetup, columns }, dirty: true }))
 }))
 
 export type { JSONContent }

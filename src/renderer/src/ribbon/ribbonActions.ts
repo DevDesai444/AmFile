@@ -2,7 +2,8 @@ import { useUiStore } from '../store/uiStore'
 import { useDocumentStore } from '../store/documentStore'
 import { useTreeStore } from '../store/treeStore'
 import { runEditorCommand } from './editorCommandRegistry'
-import { notImplemented } from '../common/toastStore'
+import { notImplemented, useToastStore } from '../common/toastStore'
+import { useFolderStore } from '../store/folderStore'
 
 const EDITOR_COMMAND_PREFIXES = ['mark.', 'font.', 'align.', 'list.', 'paragraph.', 'style.', 'insert.', 'edit.', 'track.']
 
@@ -54,10 +55,15 @@ export async function runRibbonAction(act: string): Promise<void> {
       runEditorCommand('compliance.checkDocument')
       return
 
-    case 'compliance.checkFolder':
+    case 'compliance.checkFolder': {
+      const folder = useFolderStore.getState().selectedFolder
+      if (!folder) {
+        useToastStore.getState().push('Select a folder in the left panel first.', 'warn')
+        return
+      }
       ui.setView('folder')
-      runEditorCommand('compliance.checkFolder')
       return
+    }
 
     case 'ai.open':
     case 'ai.askSelection':

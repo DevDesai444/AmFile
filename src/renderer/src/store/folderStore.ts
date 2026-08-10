@@ -29,11 +29,14 @@ interface FolderState {
   error: string | null
   /** Folder whose permissions dialog is open. */
   permissionsFor: { id: string; name: string } | null
+  /** Folder the user last clicked — the target for folder-wide actions like a compliance run. */
+  selectedFolder: { id: string; name: string } | null
 
   refresh: () => Promise<void>
   toggle: (id: string) => void
   createFolder: (name: string, parentId: string | null) => Promise<void>
   createDocument: (name: string, folderId: string) => Promise<void>
+  selectFolder: (id: string, name: string) => void
   openPermissions: (id: string, name: string) => void
   closePermissions: () => void
   applyLockChange: (documentId: string, lockedBy: string | null, lockedByUserId: string | null) => void
@@ -50,6 +53,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   loading: false,
   error: null,
   permissionsFor: null,
+  selectedFolder: null,
 
   refresh: async () => {
     set({ loading: true })
@@ -92,6 +96,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     }
   },
 
+  selectFolder: (id, name) => set({ selectedFolder: { id, name } }),
   openPermissions: (id, name) => set({ permissionsFor: { id, name } }),
   closePermissions: () => set({ permissionsFor: null }),
 

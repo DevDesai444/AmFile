@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText, Lock, Users, FolderPlus, RefreshCw } from 'lucide-react'
+import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText, Lock, Users, FolderPlus, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useFolderStore, type FolderNode } from '../store/folderStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useDocumentStore } from '../store/documentStore'
 import { useUiStore } from '../store/uiStore'
+import { runRibbonAction } from '../ribbon/ribbonActions'
 
 const ACCESS_LABEL: Record<string, string> = {
   viewer: 'Read only',
@@ -15,6 +16,8 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
   const expanded = useFolderStore((s) => s.expanded)
   const toggle = useFolderStore((s) => s.toggle)
   const openPermissions = useFolderStore((s) => s.openPermissions)
+  const selectFolder = useFolderStore((s) => s.selectFolder)
+  const selectedFolder = useFolderStore((s) => s.selectedFolder)
   const createFolder = useFolderStore((s) => s.createFolder)
   const createDocument = useFolderStore((s) => s.createDocument)
   const me = useSessionStore((s) => s.user)
@@ -28,8 +31,19 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
 
   return (
     <>
-      <div className="tree-row tree-row--folder" style={{ paddingLeft: 9 + depth * 13 }}>
-        <button type="button" className="tree-caret-btn" onClick={() => toggle(node.id)}>
+      <div
+        className={`tree-row tree-row--folder${selectedFolder?.id === node.id ? ' is-selected' : ''}`}
+        style={{ paddingLeft: 9 + depth * 13 }}
+        onClick={() => selectFolder(node.id, node.name)}
+      >
+        <button
+          type="button"
+          className="tree-caret-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            toggle(node.id)
+          }}
+        >
           {isOpen ? <ChevronDown size={11} strokeWidth={1.5} /> : <ChevronRight size={11} strokeWidth={1.5} />}
         </button>
         {isOpen ? (
@@ -43,12 +57,27 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
         <span className={`tree-access tree-access--${node.access}`} title={`Your access: ${ACCESS_LABEL[node.access]}`}>
           {ACCESS_LABEL[node.access]}
         </span>
+        <button
+          type="button"
+          className="tree-mini-btn"
+          title={`Run a compliance check across “${node.name}”`}
+          onClick={(e) => {
+            e.stopPropagation()
+            selectFolder(node.id, node.name)
+            void runRibbonAction('compliance.checkFolder')
+          }}
+        >
+          <ShieldCheck size={11} strokeWidth={1.5} />
+        </button>
         {node.access === 'owner' && (
           <button
             type="button"
             className="tree-mini-btn"
             title="Manage who can access this folder"
-            onClick={() => openPermissions(node.id, node.name)}
+            onClick={(e) => {
+              e.stopPropagation()
+              openPermissions(node.id, node.name)
+            }}
           >
             <Users size={11} strokeWidth={1.5} />
           </button>
@@ -59,7 +88,8 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
               type="button"
               className="tree-mini-btn"
               title="New sub-folder"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation()
                 const name = window.prompt(`New folder inside “${node.name}”`)
                 if (name) void createFolder(name, node.id)
               }}
@@ -70,7 +100,8 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
               type="button"
               className="tree-mini-btn"
               title="New document in this folder"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation()
                 const name = window.prompt(`New document in “${node.name}”`)
                 if (name) void createDocument(name, node.id)
               }}

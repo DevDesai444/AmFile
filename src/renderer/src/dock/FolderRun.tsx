@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import BlueprintCard from '../common/BlueprintCard'
 import { useComplianceStore } from '../store/complianceStore'
-import { useTreeStore } from '../store/treeStore'
+import { useFolderStore } from '../store/folderStore'
 
 function stateLabel(state: string): string {
   switch (state) {
@@ -19,17 +19,17 @@ function stateLabel(state: string): string {
 }
 
 export default function FolderRun(): React.JSX.Element {
-  const rootPath = useTreeStore((s) => s.rootPath)
+  const selectedFolder = useFolderStore((s) => s.selectedFolder)
   const folderRun = useComplianceStore((s) => s.folderRun)
   const folderResult = useComplianceStore((s) => s.folderResult)
   const folderRunning = useComplianceStore((s) => s.folderRunning)
   const checkFolder = useComplianceStore((s) => s.checkFolder)
 
   useEffect(() => {
-    if (rootPath && !folderResult && !folderRunning) {
-      checkFolder(rootPath, rootPath)
+    if (selectedFolder && !folderResult && !folderRunning) {
+      checkFolder(selectedFolder.id, selectedFolder.name)
     }
-  }, [rootPath, folderResult, folderRunning, checkFolder])
+  }, [selectedFolder, folderResult, folderRunning, checkFolder])
 
   const live = folderResult ?? folderRun
   const rows = live?.rows ?? []
@@ -40,8 +40,13 @@ export default function FolderRun(): React.JSX.Element {
   const highTotal = folderResult?.highTotal ?? rows.reduce((sum, r) => sum + r.severityCounts.high, 0)
   const mediumTotal = folderResult?.mediumTotal ?? rows.reduce((sum, r) => sum + r.severityCounts.medium, 0)
 
-  if (!rootPath) {
-    return <div className="navigator-empty">Open a folder first</div>
+  if (!selectedFolder) {
+    return (
+      <div className="navigator-empty">
+        <p>No folder selected.</p>
+        <p className="navigator-empty-hint">Click a folder in the left panel, then run the check again.</p>
+      </div>
+    )
   }
 
   return (
@@ -49,7 +54,7 @@ export default function FolderRun(): React.JSX.Element {
       <div className="folder-run-header">
         <div>
           <div className="folder-run-kicker">Folder compliance run</div>
-          <h2>{rootPath.split(/[\\/]/).pop()}</h2>
+          <h2>{selectedFolder.name}</h2>
         </div>
         <div className="folder-run-stats">
           <div>

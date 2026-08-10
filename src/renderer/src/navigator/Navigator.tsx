@@ -1,6 +1,6 @@
 import { ChevronRight, Plus, PanelLeftClose, Search, ShieldCheck } from 'lucide-react'
 import { useUiStore } from '../store/uiStore'
-import { useTreeStore } from '../store/treeStore'
+import { useFolderStore } from '../store/folderStore'
 import FolderTree from './FolderTree'
 import PermissionsDialog from './PermissionsDialog'
 import OutlineTree from './OutlineTree'
@@ -11,7 +11,7 @@ export default function Navigator(): React.JSX.Element {
   const toggleLeft = useUiStore((s) => s.toggleLeft)
   const treeTab = useUiStore((s) => s.treeTab)
   const setTreeTab = useUiStore((s) => s.setTreeTab)
-  const rootPath = useTreeStore((s) => s.rootPath)
+  const selectedFolder = useFolderStore((s) => s.selectedFolder)
 
   if (!leftOpen) {
     return (
@@ -61,11 +61,11 @@ export default function Navigator(): React.JSX.Element {
         {treeTab === 'project' ? <FolderTree /> : <OutlineTree />}
       </div>
 
-      {rootPath && (
+      {selectedFolder && (
         <div className="navigator-footer">
           <button type="button" className="navigator-check-folder-btn" onClick={() => runRibbonAction('compliance.checkFolder')}>
             <ShieldCheck size={14} strokeWidth={1.5} />
-            Check entire folder
+            Check “{selectedFolder.name}”
           </button>
         </div>
       )}
