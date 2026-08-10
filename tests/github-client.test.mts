@@ -53,13 +53,13 @@ let bad = 0
   check('slugify', slugify('ANDA 217-445 — Rivastigmine TDS') === 'ANDA-217-445-Rivastigmine-TDS', slugify('ANDA 217-445 — Rivastigmine TDS'))
   check('slugify of punctuation only', slugify('///') === 'amfile-project', slugify('///'))
 
-  // The Amneal email -> GitHub login convention: name.surname@amneal.com is NameSurnameAm.
+  // The Amneal email -> GitHub login convention: name.surname@amneal.com is NameSurname.
   for (const [email, expected] of [
-    ['dev.desai@amneal.com', 'DevDesaiAm'],
-    ['Dev.Desai@amneal.com', 'DevDesaiAm'],
-    ['riya.patel@amneal.com', 'RiyaPatelAm'],
-    ['anna.van.dijk@amneal.com', 'AnnaVanDijkAm'],
-    ['devdesai@amneal.com', 'DevdesaiAm'],
+    ['dev.desai@amneal.com', 'DevDesai'],
+    ['Dev.Desai@amneal.com', 'DevDesai'],
+    ['riya.patel@amneal.com', 'RiyaPatel'],
+    ['anna.van.dijk@amneal.com', 'AnnaVanDijk'],
+    ['devdesai@amneal.com', 'Devdesai'],
     ['someone@gmail.com', null],
     ['not-an-address', null]
   ] as const) {
@@ -70,9 +70,15 @@ let bad = 0
   check('lookupUser returns null for a free username', (await lookupUser('amfile-no-such-user-9f3a2b')) === null, null)
 
   // A derived login that nobody holds must be refused, and must say what to do about it.
-  const unclaimed = await resolvePerson('nobody.here@amneal.com')
-  check('resolvePerson refuses an unclaimed derived login', !unclaimed.ok && unclaimed.expectedLogin === 'NobodyHereAm',
-    unclaimed.ok ? 'resolved' : unclaimed.expectedLogin)
+  // Deliberately obscure, because ordinary names are not free. Dropping the "Am" suffix from
+  // the convention made NobodyHere, DevDesai and RiyaPatel all resolve to real, unrelated
+  // GitHub accounts — which is the collision this test used to rely on not happening.
+  const unclaimed = await resolvePerson('zz.unclaimed.test.person@amneal.com')
+  check(
+    'resolvePerson refuses an unclaimed derived login',
+    !unclaimed.ok && unclaimed.expectedLogin === 'ZzUnclaimedTestPerson',
+    unclaimed.ok ? 'resolved' : unclaimed.expectedLogin
+  )
 
   const outside = await resolvePerson('someone@gmail.com')
   check('resolvePerson refuses a non-Amneal address', !outside.ok, outside.ok ? 'resolved' : 'refused')

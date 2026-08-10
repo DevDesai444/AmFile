@@ -439,7 +439,7 @@ export interface Collaborator {
 
 /**
  * The Amneal convention: `name.surname@amneal.com` is held by the GitHub account
- * `NameSurnameAm` — each part of the address capitalised, joined, with `Am` appended.
+ * `NameSurname` — each part of the address capitalised and joined.
  *
  * This is what makes "add someone by their work email" possible at all. GitHub's collaborator
  * API addresses people by login and there is no way to look a login up from an email, because
@@ -456,7 +456,7 @@ export function usernameFromEmail(email: string): string | null {
   const parts = match[1].split(/[._-]+/).filter(Boolean)
   if (parts.length === 0) return null
 
-  return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('') + 'Am'
+  return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('')
 }
 
 /**

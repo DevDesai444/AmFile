@@ -46,10 +46,10 @@ The token is kept in your OS keychain, so this is once per machine, not once per
 To add colleagues by their Amneal email, their GitHub username must follow the convention:
 
 ```
-<name>.<surname>@amneal.com   →   <Name><Surname>Am
+<name>.<surname>@amneal.com   →   <Name><Surname>
 
-dev.desai@amneal.com          →   DevDesaiAm
-anna.van.dijk@amneal.com      →   AnnaVanDijkAm
+dev.desai@amneal.com          →   DevDesai
+anna.van.dijk@amneal.com      →   AnnaVanDijk
 ```
 
 If someone's GitHub username doesn't match, add them by **username** instead — the same box
@@ -176,7 +176,7 @@ You can open any project on github.com and see exactly this. Nothing is hidden i
 | "GitHub sign-in isn't set up" | `AMFILE_GITHUB_CLIENT_ID` was not set — see step 0. |
 | Code expired | Codes last 15 minutes. Cancel and start again. |
 | Project doesn't appear on the other machine | The invitation hasn't been accepted yet — check email, or github.com/notifications. |
-| "No GitHub account named …Am" | Their username doesn't match the convention. Add them by username instead. |
+| "No GitHub account named …" | Their username doesn't match the convention. Add them by username instead. |
 | Status bar shows Offline | No internet, or GitHub is unreachable. It keeps retrying. |
 | Windows: "npm.ps1 cannot be loaded because running scripts is disabled" | PowerShell's execution policy blocks npm's `.ps1` shim. Use `npm.cmd` instead of `npm` — it is a batch file, so the policy does not apply and nothing has to be relaxed. The setup script does this itself. |
 | Changes not appearing | Polling is a few seconds. If it persists, check the status bar. |
