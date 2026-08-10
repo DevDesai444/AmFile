@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ViewMode = 'welcome' | 'editor' | 'folder' | 'settings' | 'users'
+export type ViewMode = 'welcome' | 'editor' | 'folder' | 'settings'
 export type DockTab = 'chat' | 'compliance' | 'comments' | 'audit' | 'proposals'
 export type TreeTab = 'project' | 'outline'
 /** How the page itself is drawn. Separate from `view`, which picks the whole centre pane. */

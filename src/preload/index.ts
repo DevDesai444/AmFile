@@ -6,12 +6,15 @@ import type { FsTreeNode } from '../main/services/fs/tree'
 
 const amfileApi = {
   platform: process.platform,
+  openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('shell:openExternal', url),
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximizeToggle: () => ipcRenderer.invoke('window:maximizeToggle'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:isMaximized'),
     setDirty: (dirty: boolean): Promise<void> => ipcRenderer.invoke('window:setDirty', dirty),
+    newWindow: (): Promise<boolean> => ipcRenderer.invoke('window:new'),
+    arrange: (mode: 'sideBySide' | 'tile'): Promise<boolean> => ipcRenderer.invoke('window:arrange', mode),
     onMaximizeChanged: (cb: (isMaximized: boolean) => void): (() => void) => {
       const listener = (_: unknown, v: boolean): void => cb(v)
       ipcRenderer.on('window:maximizeChanged', listener)
@@ -35,6 +38,10 @@ const amfileApi = {
   print: {
     exportPdf: (outPath: string, pageSetup: PageSetup, headerHtml: string, footerHtml: string): Promise<boolean> =>
       ipcRenderer.invoke('print:exportPdf', outPath, pageSetup, headerHtml, footerHtml)
+  },
+  media: {
+    listScreenSources: (): Promise<Array<{ id: string; name: string; thumbnail: string }>> =>
+      ipcRenderer.invoke('media:listScreenSources')
   },
   compliance: {
     checkDocument: (docId: string, docPath: string) => ipcRenderer.invoke('compliance:checkDocument', docId, docPath),

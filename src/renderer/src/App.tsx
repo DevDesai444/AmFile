@@ -12,7 +12,6 @@ import StatusBar from './statusbar/StatusBar'
 import Welcome from './welcome/Welcome'
 import LoginView from './welcome/LoginView'
 import ChangePasswordView from './welcome/ChangePasswordView'
-import UsersView from './welcome/UsersView'
 import SettingsView from './welcome/SettingsView'
 import EditorCanvas from './editor/EditorCanvas'
 import FolderRun from './dock/FolderRun'
@@ -128,7 +127,6 @@ export default function App(): React.JSX.Element {
           {view === 'editor' && <EditorCanvas />}
           {view === 'folder' && <FolderRun />}
           {view === 'settings' && <SettingsView />}
-          {view === 'users' && <UsersView />}
         </div>
         <Dock />
       </div>

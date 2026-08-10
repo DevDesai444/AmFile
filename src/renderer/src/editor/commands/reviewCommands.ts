@@ -7,7 +7,8 @@ import { useToastStore, notImplemented } from '../../common/toastStore'
 import { insertComment } from '../insertComment'
 import { pick } from './prompts'
 
-const toast = (msg: string): void => useToastStore.getState().push(msg)
+const toast = (msg: string, tone: 'info' | 'warn' | 'error' = 'info'): void =>
+  useToastStore.getState().push(msg, tone)
 
 const LANGUAGES = ['English (US)', 'English (UK)', 'German', 'French', 'Spanish', 'Japanese'] as const
 
@@ -68,7 +69,10 @@ export function handleReviewCommand(editor: Editor, command: string): boolean {
 
     case 'review.readAloud': {
       const synth = window.speechSynthesis
-      if (!synth) {
+      const Utterance = window.SpeechSynthesisUtterance
+      // Both halves of the API are needed; check them together rather than assuming the
+      // constructor exists because the synthesiser does.
+      if (!synth || !Utterance) {
         notImplemented('Read aloud')
         return true
       }
@@ -85,10 +89,28 @@ export function handleReviewCommand(editor: Editor, command: string): boolean {
         toast('Nothing to read.')
         return true
       }
-      synth.speak(new SpeechSynthesisUtterance(text))
+      synth.speak(new Utterance(text))
       toast('Reading aloud — press Read aloud again to stop.')
       return true
     }
+
+    case 'review.thesaurus': {
+      // Shipping a word list would mean shipping a dictionary licence, and inventing
+      // synonyms for a regulatory document would be worse than offering nothing.
+      const { from, to, empty } = editor.state.selection
+      const word = empty ? '' : editor.state.doc.textBetween(from, to).trim()
+      toast(
+        word
+          ? `No thesaurus is connected, so "${word}" cannot be looked up.`
+          : 'No thesaurus is connected — this needs a licensed dictionary source.',
+        'warn'
+      )
+      return true
+    }
+
+    case 'review.translate':
+      toast('Translation isn’t available — it would send document text to an external service.', 'warn')
+      return true
 
     case 'review.language': {
       const choice = pick('Proofing language', LANGUAGES, doc.language as (typeof LANGUAGES)[number])

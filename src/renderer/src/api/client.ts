@@ -9,7 +9,9 @@
  * feeds both this client and the Content-Security-Policy in index.html — if they disagree,
  * the CSP silently blocks every request and it looks like the server is down.
  */
-const SERVER_HOST = import.meta.env.VITE_AMFILE_HOST ?? '127.0.0.1:8787'
+// Optional-chained so this module can also be imported outside Vite (the ribbon command
+// test loads it under plain Node, where import.meta.env does not exist).
+const SERVER_HOST = import.meta.env?.VITE_AMFILE_HOST ?? '127.0.0.1:8787'
 const BASE = `http://${SERVER_HOST}`
 const TOKEN_KEY = 'amfile.session'
 
@@ -17,20 +19,7 @@ export interface ApiUser {
   id: string
   email: string
   displayName: string
-  roles: Array<'author' | 'reviewer' | 'approver' | 'admin'>
   mustChangePassword: boolean
-}
-
-export interface AdminUser {
-  id: string
-  email: string
-  displayName: string
-  roles: ApiUser['roles']
-  active: boolean
-  lastSeenAt: string | null
-  mustChangePassword: boolean
-  lockedUntil: string | null
-  passwordUpdatedAt: string | null
 }
 
 export interface ApiDocument {
@@ -79,10 +68,10 @@ export interface FolderMember {
   inherited: boolean
 }
 
-export interface DirectoryUser {
-  id: string
-  displayName: string
+export interface PendingInvite {
   email: string
+  access: 'viewer' | 'editor' | 'owner'
+  invitedAt: string
 }
 
 export interface Proposal {
@@ -209,28 +198,28 @@ export const api = {
 
   me: () => request<{ user: ApiUser }>('/api/auth/me'),
 
+  authMethods: () => request<{ github: boolean; password: boolean }>('/api/auth/methods'),
+
+  githubStart: () =>
+    request<{ deviceCode: string; userCode: string; verificationUri: string; interval: number; expiresIn: number }>(
+      '/api/auth/github/start',
+      { method: 'POST' }
+    ),
+
+  githubPoll: (deviceCode: string) =>
+    request<
+      | { status: 'pending' }
+      | { status: 'slow_down'; interval: number }
+      | { status: 'expired' }
+      | { status: 'denied' }
+      | { status: 'ok'; token: string; user: ApiUser }
+    >('/api/auth/github/poll', { method: 'POST', body: JSON.stringify({ deviceCode }) }),
+
   changePassword: (current: string, next: string) =>
     request<{ ok: true }>('/api/auth/change-password', {
       method: 'POST',
       body: JSON.stringify({ current, next })
     }),
-
-  listUsers: () => request<{ users: AdminUser[] }>('/api/users'),
-
-  inviteUser: (email: string, displayName: string, roles: ApiUser['roles']) =>
-    request<{ ok: true; user: AdminUser; temporaryPassword: string }>('/api/users/invite', {
-      method: 'POST',
-      body: JSON.stringify({ email, displayName, roles })
-    }),
-
-  setUserActive: (id: string, active: boolean) =>
-    request<{ ok: true }>(`/api/users/${id}/active`, { method: 'POST', body: JSON.stringify({ active }) }),
-
-  setUserRoles: (id: string, roles: ApiUser['roles']) =>
-    request<{ ok: true }>(`/api/users/${id}/roles`, { method: 'POST', body: JSON.stringify({ roles }) }),
-
-  resetUserPassword: (id: string) =>
-    request<{ temporaryPassword: string }>(`/api/users/${id}/reset-password`, { method: 'POST' }),
 
   listProposals: (documentId: string) =>
     request<{ proposals: Proposal[] }>(`/api/documents/${documentId}/proposals`),
@@ -270,7 +259,16 @@ export const api = {
       body: JSON.stringify({ userId, access })
     }),
 
-  userDirectory: () => request<{ users: DirectoryUser[] }>('/api/users/directory'),
+  folderInvites: (folderId: string) => request<{ invites: PendingInvite[] }>(`/api/folders/${folderId}/invites`),
+
+  inviteToFolder: (folderId: string, email: string, access: 'viewer' | 'editor' | 'owner') =>
+    request<{ ok: true; immediate: boolean }>(`/api/folders/${folderId}/invites`, {
+      method: 'POST',
+      body: JSON.stringify({ email, access })
+    }),
+
+  revokeInvite: (folderId: string, email: string) =>
+    request<{ ok: true }>(`/api/folders/${folderId}/invites/${encodeURIComponent(email)}`, { method: 'DELETE' }),
 
   listDocuments: () => request<{ documents: ApiDocument[] }>('/api/documents'),
 

@@ -19,7 +19,14 @@ export function contentHash(content: unknown): string {
   return createHash('sha256').update(JSON.stringify(content)).digest('hex')
 }
 
-export async function listDocuments(): Promise<DocumentSummary[]> {
+/**
+ * Documents this user can actually reach.
+ *
+ * Scoped, not global: sign-in is open (anyone with a GitHub account can create a user row), so
+ * an unscoped list would hand every new arrival the title and path of every document in the
+ * system. A document with no folder is not visible to anyone.
+ */
+export async function listDocuments(user: SessionUser): Promise<DocumentSummary[]> {
   const rows = await query<{
     id: string
     path: string
@@ -37,7 +44,10 @@ export async function listDocuments(): Promise<DocumentSummary[]> {
        LEFT JOIN document_locks l ON l.document_id = d.id AND l.expires_at > now()
        LEFT JOIN users lu ON lu.id = l.user_id
       WHERE d.archived_at IS NULL
-      ORDER BY d.path`
+        AND d.folder_id IS NOT NULL
+        AND amfile_effective_access($1, d.folder_id) IS NOT NULL
+      ORDER BY d.path`,
+    [user.id]
   )
   return rows.map((r) => ({
     id: r.id,
@@ -96,7 +106,7 @@ export async function createDocument(
     return id
   })
 
-  const summary = (await listDocuments()).find((d) => d.id === doc)
+  const summary = (await listDocuments(user)).find((d) => d.id === doc)
   if (!summary) throw new Error('Document vanished immediately after creation')
   return summary
 }

@@ -21,11 +21,13 @@ export function setActiveEditor(id: string): void {
   activeId = id
 }
 
-export function runEditorCommand(command: string, payload?: unknown): void {
+/** Returns false when no editor is mounted, so the caller can explain why nothing happened. */
+export function runEditorCommand(command: string, payload?: unknown): boolean {
   const handler = handlers.get(activeId) ?? handlers.get('main')
   if (!handler) {
     console.info(`[editor] no active editor to run "${command}"`)
-    return
+    return false
   }
   handler(command, payload)
+  return true
 }

@@ -16,6 +16,7 @@ import {
   type ChartKind
 } from '../graphics'
 import { askNumber, askText, parseDataPairs, pick } from './prompts'
+import { insertPicture } from '../insertImage'
 
 const toast = (msg: string): void => useToastStore.getState().push(msg)
 
@@ -63,8 +64,7 @@ const QUICK_PARTS: Record<string, string> = {
 
 /** Inserts a generated graphic, rasterised so it survives docx export. */
 async function insertGraphic(editor: Editor, svg: string, alt: string): Promise<void> {
-  const src = await rasterize(svg)
-  editor.chain().focus().setImage({ src, alt }).run()
+  insertPicture(editor, await rasterize(svg), alt)
 }
 
 export function handleInsertCommand(editor: Editor, command: string): boolean {
@@ -292,6 +292,37 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
       void insertGraphic(editor, smartArtSvg(kind, steps, accent), `${kind} diagram`)
       return true
     }
+
+    case 'insert.screenshot': {
+      if (!window.amfile?.media) {
+        toast('Screen capture needs the desktop app.')
+        return true
+      }
+      void window.amfile.media
+        .listScreenSources()
+        .then((sources) => {
+          if (sources.length === 0) {
+            toast('No screens or windows available to capture.')
+            return
+          }
+          const choice = pick(
+            'Capture which screen or window?',
+            sources.map((s) => s.name)
+          )
+          if (!choice) return
+          const source = sources[sources.map((s) => s.name).indexOf(choice)]
+          insertPicture(editor, source.thumbnail, `Screenshot — ${source.name}`)
+        })
+        .catch(() => toast('Screen capture was refused. Grant screen-recording permission to AmFile.'))
+      return true
+    }
+
+    case 'insert.model3d':
+      // A .glb/.fbx viewer plus an export path that Word can read is a feature in its own
+      // right, and a regulatory document has no use for one. Say so instead of toasting a
+      // generic "not implemented".
+      toast('3D models aren’t supported — they have no representation in a .docx submission.')
+      return true
 
     case 'insert.blankPage':
     case 'insert.pageBreak':

@@ -3,6 +3,8 @@ import { Minus, Square, Copy, X, FileText, Search } from 'lucide-react'
 import logo from '../assets/amneal-logo.png'
 import { useDocumentStore } from '../store/documentStore'
 import { useSessionStore } from '../store/sessionStore'
+import { useUiStore } from '../store/uiStore'
+import { useToastStore } from '../common/toastStore'
 
 export default function TitleBar(): React.JSX.Element {
   const [isMaximized, setIsMaximized] = useState(false)
@@ -14,6 +16,9 @@ export default function TitleBar(): React.JSX.Element {
   const lockedByOther = useDocumentStore((s) => s.lockedByOther)
   const user = useSessionStore((s) => s.user)
   const signOut = useSessionStore((s) => s.signOut)
+  const requestSearch = useUiStore((s) => s.requestSearch)
+  const setView = useUiStore((s) => s.setView)
+  const push = useToastStore((s) => s.push)
 
   // macOS draws its own traffic lights inset into this bar, so the renderer must not
   // add a second set — it only draws window controls on Windows/Linux.
@@ -51,7 +56,21 @@ export default function TitleBar(): React.JSX.Element {
       </div>
 
       <div className="titlebar-right">
-        <button className="titlebar-search-btn" type="button">
+        <button
+          className="titlebar-search-btn"
+          type="button"
+          title="Search this document (Ctrl/Cmd-F)"
+          onClick={() => {
+            // Search only means anything against an open document; sending the user to a
+            // find bar that cannot exist yet is worse than saying so.
+            if (!fileName) {
+              push('Open a document first — search looks inside the document you are editing.', 'warn')
+              return
+            }
+            setView('editor')
+            requestSearch()
+          }}
+        >
           <Search size={13} strokeWidth={1.5} />
           <span>Search</span>
         </button>
@@ -59,7 +78,7 @@ export default function TitleBar(): React.JSX.Element {
           <button
             type="button"
             className="titlebar-avatar"
-            title={`${user.displayName} — ${user.email}\nRoles: ${user.roles.join(', ')}\nClick to sign out`}
+            title={`${user.displayName} — ${user.email}\nClick to sign out`}
             onClick={() => void signOut()}
           >
             {user.displayName

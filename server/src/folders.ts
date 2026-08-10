@@ -149,7 +149,7 @@ export async function createFolder(
   )
   const id = row[0].id
 
-  // The creator owns what they create, otherwise a non-admin would immediately lose sight of
+  // The creator owns what they create, otherwise they would immediately lose sight of
   // the folder they just made.
   await query('INSERT INTO folder_permissions (folder_id, user_id, access, granted_by) VALUES ($1,$2,$3,$2)', [
     id,
@@ -239,6 +239,78 @@ export async function setFolderAccess(
     printedName: actor.displayName,
     action: access === null ? 'permission.revoked' : 'permission.granted',
     newValue: { folderId, target: target.display_name, access }
+  })
+  return null
+}
+
+
+export interface PendingInvite {
+  email: string
+  access: Access
+  invitedAt: string
+}
+
+export async function folderInvites(folderId: string): Promise<PendingInvite[]> {
+  const rows = await query<{ email: string; access: Access; invited_at: Date }>(
+    'SELECT email, access, invited_at FROM folder_invitations WHERE folder_id = $1 AND claimed_at IS NULL ORDER BY email',
+    [folderId]
+  )
+  return rows.map((r) => ({ email: r.email, access: r.access, invitedAt: r.invited_at.toISOString() }))
+}
+
+/**
+ * Invite an email address to a folder. The person does not need an AmFile account: the
+ * invitation is claimed automatically the first time someone signs in with that address.
+ * If they already have an account, access is granted immediately instead.
+ */
+export async function inviteEmail(
+  actor: SessionUser,
+  folderId: string,
+  email: string,
+  access: Access
+): Promise<{ ok: true; immediate: boolean } | { ok: false; error: string }> {
+  if (!atLeast(await effectiveAccess(actor.id, folderId), 'owner')) {
+    return { ok: false, error: 'Only an owner of this project can add people to it.' }
+  }
+  const normalized = email.trim().toLowerCase()
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized)) {
+    return { ok: false, error: 'That does not look like an email address.' }
+  }
+
+  const existing = await queryOne<{ id: string }>('SELECT id FROM users WHERE lower(email) = $1', [normalized])
+  if (existing) {
+    await query(
+      `INSERT INTO folder_permissions (folder_id, user_id, access, granted_by) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (folder_id, user_id) DO UPDATE SET access = $3, granted_by = $4, granted_at = now()`,
+      [folderId, existing.id, access, actor.id]
+    )
+  } else {
+    await query(
+      `INSERT INTO folder_invitations (folder_id, email, access, invited_by) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (folder_id, email) DO UPDATE SET access = $3, invited_by = $4, invited_at = now()`,
+      [folderId, normalized, access, actor.id]
+    )
+  }
+
+  await writeAudit({
+    userId: actor.id,
+    printedName: actor.displayName,
+    action: existing ? 'permission.granted' : 'permission.invited',
+    newValue: { folderId, email: normalized, access }
+  })
+  return { ok: true, immediate: Boolean(existing) }
+}
+
+export async function revokeInvite(actor: SessionUser, folderId: string, email: string): Promise<string | null> {
+  if (!atLeast(await effectiveAccess(actor.id, folderId), 'owner')) {
+    return 'Only an owner of this project can change who has access.'
+  }
+  await query('DELETE FROM folder_invitations WHERE folder_id = $1 AND lower(email) = lower($2)', [folderId, email])
+  await writeAudit({
+    userId: actor.id,
+    printedName: actor.displayName,
+    action: 'permission.invite_revoked',
+    newValue: { folderId, email }
   })
   return null
 }

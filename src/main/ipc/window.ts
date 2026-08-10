@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, screen, desktopCapturer, shell } from 'electron'
 
 /**
  * Mirror of the renderer's unsaved state, pushed on every change. The close handler runs in
@@ -11,9 +11,68 @@ let hasUnsavedChanges = false
  * throws if the same channel is registered twice. Keep it out of per-window setup, which
  * runs again on macOS when the dock icon re-creates a closed window.
  */
-export function registerWindowIpc(): void {
+export function registerWindowIpc(createWindow: () => BrowserWindow): void {
   ipcMain.handle('window:setDirty', (_event, dirty: boolean) => {
     hasUnsavedChanges = Boolean(dirty)
+  })
+
+  /**
+   * Open a URL in the user's real browser. Restricted to https so a compromised renderer
+   * cannot use this to launch a local file or a custom scheme handler.
+   */
+  ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+    if (typeof url !== 'string' || !url.startsWith('https://')) return false
+    await shell.openExternal(url)
+    return true
+  })
+
+  ipcMain.handle('window:new', () => {
+    createWindow()
+    return true
+  })
+
+  /**
+   * Tiles the open windows across the display holding the caller. `sideBySide` uses the two
+   * most recent windows; `tile` lays out every window in a grid.
+   */
+  ipcMain.handle('window:arrange', (event, mode: 'sideBySide' | 'tile') => {
+    const caller = BrowserWindow.fromWebContents(event.sender)
+    const windows = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
+    if (windows.length < 2) return false
+
+    const area = screen.getDisplayNearestPoint(
+      caller ? { x: caller.getBounds().x, y: caller.getBounds().y } : screen.getPrimaryDisplay().bounds
+    ).workArea
+
+    const targets = mode === 'sideBySide' ? windows.slice(-2) : windows
+    const cols = mode === 'sideBySide' ? 2 : Math.ceil(Math.sqrt(targets.length))
+    const rows = Math.ceil(targets.length / cols)
+    const w = Math.floor(area.width / cols)
+    const h = Math.floor(area.height / rows)
+
+    targets.forEach((win, i) => {
+      if (win.isMaximized()) win.unmaximize()
+      win.setBounds({
+        x: area.x + (i % cols) * w,
+        y: area.y + Math.floor(i / cols) * h,
+        width: w,
+        height: h
+      })
+    })
+    return true
+  })
+
+  /**
+   * Screen capture for Insert → Screenshot. Sources are enumerated in the main process and
+   * only the chosen thumbnail crosses to the renderer as a PNG data URL — the renderer never
+   * gets a capture handle of its own.
+   */
+  ipcMain.handle('media:listScreenSources', async () => {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen', 'window'],
+      thumbnailSize: { width: 1920, height: 1200 }
+    })
+    return sources.map((s) => ({ id: s.id, name: s.name, thumbnail: s.thumbnail.toDataURL() }))
   })
 
   ipcMain.handle('window:minimize', (event) => {

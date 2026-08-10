@@ -4,7 +4,6 @@ import logo from '../assets/amneal-logo.png'
 import BlueprintCard from '../common/BlueprintCard'
 import { useFolderStore } from '../store/folderStore'
 import { useSessionStore } from '../store/sessionStore'
-import { useUiStore } from '../store/uiStore'
 import { useToastStore } from '../common/toastStore'
 
 /**
@@ -18,8 +17,8 @@ export default function Welcome(): React.JSX.Element {
   const createDocument = useFolderStore((s) => s.createDocument)
   const folders = useFolderStore((s) => s.folders)
   const selectedFolder = useFolderStore((s) => s.selectedFolder)
+  const openPermissions = useFolderStore((s) => s.openPermissions)
   const user = useSessionStore((s) => s.user)
-  const setView = useUiStore((s) => s.setView)
   const push = useToastStore((s) => s.push)
   const [busy, setBusy] = useState(false)
 
@@ -67,13 +66,22 @@ export default function Welcome(): React.JSX.Element {
           <span className="welcome-action-hint">{target ? `into ${target.name}` : 'pick a project first'}</span>
         </BlueprintCard>
 
-        {user?.roles.includes('admin') && (
-          <BlueprintCard className="welcome-action-card" onClick={() => setView('users')}>
-            <Users size={22} strokeWidth={1.5} />
-            <span>People</span>
-            <span className="welcome-action-hint">Add colleagues to AmFile</span>
-          </BlueprintCard>
-        )}
+        <BlueprintCard
+          className="welcome-action-card"
+          onClick={() => {
+            // People belong to a project, not to AmFile — so this opens the access list of the
+            // selected project rather than any global directory, which no longer exists.
+            if (!target) {
+              push('Select a project first — people are added to a project, not to AmFile.', 'warn')
+              return
+            }
+            openPermissions(target.id, target.name)
+          }}
+        >
+          <Users size={22} strokeWidth={1.5} />
+          <span>People</span>
+          <span className="welcome-action-hint">{target ? `who can see ${target.name}` : 'pick a project first'}</span>
+        </BlueprintCard>
       </div>
 
       {folders.length === 0 && (

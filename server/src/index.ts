@@ -2,7 +2,8 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import websocket from '@fastify/websocket'
 import { z } from 'zod'
-import { login, logout, resolveSession, changePassword, requireRole, type SessionUser } from './auth.js'
+import { login, logout, resolveSession, changePassword, type SessionUser } from './auth.js'
+import { isConfigured as githubConfigured, startDeviceFlow, pollDeviceFlow } from './github-auth.js'
 import {
   listDocuments,
   createDocument,
@@ -18,8 +19,18 @@ import {
   deleteComment
 } from './documents.js'
 import { writeAudit, verifyAuditChain } from './audit.js'
-import { folderTreeFor, createFolder, folderMembers, setFolderAccess, effectiveAccess, accessForDocument, atLeast } from './folders.js'
-import { listUsers, inviteUser, setActive, setRoles, resetPassword } from './users.js'
+import {
+  folderTreeFor,
+  createFolder,
+  folderMembers,
+  setFolderAccess,
+  effectiveAccess,
+  accessForDocument,
+  atLeast,
+  folderInvites,
+  inviteEmail,
+  revokeInvite
+} from './folders.js'
 import {
   listProposals,
   getProposal,
@@ -42,16 +53,36 @@ await app.register(websocket)
 type Client = { socket: { send: (data: string) => void }; user: SessionUser }
 const clients = new Set<Client>()
 
+/**
+ * Push an event to connected clients.
+ *
+ * Scoped by access when the payload names a document or folder: a live event carries the
+ * document id and who touched it, which is exactly the metadata someone with no access should
+ * not receive. Presence and other unscoped events still go to everyone.
+ *
+ * Fire-and-forget — callers do not await the fan-out, and one bad socket cannot hold up a
+ * request.
+ */
 export function broadcast(event: string, payload: unknown, exceptUserId?: string): void {
   const message = JSON.stringify({ event, payload })
-  for (const c of clients) {
-    if (exceptUserId && c.user.id === exceptUserId) continue
-    try {
-      c.socket.send(message)
-    } catch {
-      clients.delete(c)
+  const scope = (payload as { documentId?: string } | undefined)?.documentId
+
+  void (async () => {
+    for (const c of [...clients]) {
+      if (exceptUserId && c.user.id === exceptUserId) continue
+      if (scope) {
+        // The id may name a document or a folder depending on the event, so allow either.
+        const viaDoc = await accessForDocument(c.user.id, scope).catch(() => null)
+        const viaFolder = viaDoc ? null : await effectiveAccess(c.user.id, scope).catch(() => null)
+        if (!viaDoc && !viaFolder) continue
+      }
+      try {
+        c.socket.send(message)
+      } catch {
+        clients.delete(c)
+      }
     }
-  }
+  })()
 }
 
 // ------------------------------------------------------------------------- auth helper
@@ -82,6 +113,29 @@ app.post('/api/auth/login', async (req, reply) => {
   return { token: result.token, user: result.user, passwordExpired: result.passwordExpired }
 })
 
+/** Which sign-in methods this server actually offers, so the client never shows a dead button. */
+app.get('/api/auth/methods', async () => ({ github: githubConfigured(), password: true }))
+
+app.post('/api/auth/github/start', async (_req, reply) => {
+  if (!githubConfigured()) return reply.code(501).send({ error: 'GitHub sign-in is not configured on this server.' })
+  try {
+    return await startDeviceFlow()
+  } catch (err) {
+    return reply.code(502).send({ error: err instanceof Error ? err.message : 'Could not reach GitHub.' })
+  }
+})
+
+app.post('/api/auth/github/poll', async (req, reply) => {
+  if (!githubConfigured()) return reply.code(501).send({ error: 'GitHub sign-in is not configured on this server.' })
+  const body = z.object({ deviceCode: z.string().min(1) }).safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'deviceCode is required.' })
+  try {
+    return await pollDeviceFlow(body.data.deviceCode, String(req.headers['user-agent'] ?? ''))
+  } catch (err) {
+    return reply.code(400).send({ error: err instanceof Error ? err.message : 'Sign-in failed.' })
+  }
+})
+
 app.post('/api/auth/logout', async (req, reply) => {
   const user = await resolveSession(bearer(req as never))
   await logout(bearer(req as never), user)
@@ -102,77 +156,6 @@ app.post('/api/auth/change-password', async (req, reply) => {
   const problem = await changePassword(user, body.data.current, body.data.next)
   if (problem) return reply.code(400).send({ error: problem })
   return { ok: true }
-})
-
-// ------------------------------------------------------------------------------- users
-const ROLE_ENUM = z.enum(['author', 'reviewer', 'approver', 'admin'])
-
-/** Every route here is admin-only; user administration is an authority check under 11.10(g). */
-async function requireAdmin(req: never, reply: never): Promise<SessionUser | null> {
-  const user = await requireUser(req, reply)
-  if (!user) return null
-  if (!requireRole(user, 'admin')) {
-    ;(reply as unknown as { code: (n: number) => { send: (b: unknown) => void } })
-      .code(403)
-      .send({ error: 'Administrator role required.' })
-    return null
-  }
-  return user
-}
-
-app.get('/api/users', async (req, reply) => {
-  const user = await requireAdmin(req as never, reply as never)
-  if (!user) return
-  return { users: await listUsers() }
-})
-
-app.post('/api/users/invite', async (req, reply) => {
-  const actor = await requireAdmin(req as never, reply as never)
-  if (!actor) return
-  const body = z
-    .object({
-      email: z.string().email(),
-      displayName: z.string().min(1),
-      roles: z.array(ROLE_ENUM).min(1)
-    })
-    .safeParse(req.body)
-  if (!body.success) return reply.code(400).send({ error: 'Email, name and at least one role are required.' })
-  const result = await inviteUser(actor, body.data.email, body.data.displayName, body.data.roles)
-  if (!result.ok) return reply.code(409).send({ error: result.error })
-  return result
-})
-
-app.post('/api/users/:id/active', async (req, reply) => {
-  const actor = await requireAdmin(req as never, reply as never)
-  if (!actor) return
-  const { id } = req.params as { id: string }
-  const body = z.object({ active: z.boolean() }).safeParse(req.body)
-  if (!body.success) return reply.code(400).send({ error: 'active is required.' })
-  if (id === actor.id && !body.data.active) {
-    return reply.code(400).send({ error: 'You cannot deactivate your own account.' })
-  }
-  await setActive(actor, id, body.data.active)
-  return { ok: true }
-})
-
-app.post('/api/users/:id/roles', async (req, reply) => {
-  const actor = await requireAdmin(req as never, reply as never)
-  if (!actor) return
-  const { id } = req.params as { id: string }
-  const body = z.object({ roles: z.array(ROLE_ENUM) }).safeParse(req.body)
-  if (!body.success) return reply.code(400).send({ error: 'roles is required.' })
-  if (id === actor.id && !body.data.roles.includes('admin')) {
-    return reply.code(400).send({ error: 'You cannot remove your own administrator role.' })
-  }
-  await setRoles(actor, id, body.data.roles)
-  return { ok: true }
-})
-
-app.post('/api/users/:id/reset-password', async (req, reply) => {
-  const actor = await requireAdmin(req as never, reply as never)
-  if (!actor) return
-  const { id } = req.params as { id: string }
-  return { temporaryPassword: await resetPassword(actor, id) }
 })
 
 // ----------------------------------------------------------------------------- folders
@@ -217,23 +200,46 @@ app.post('/api/folders/:id/members', async (req, reply) => {
   return { ok: true }
 })
 
-/** Minimal directory for the permission picker. Any signed-in user may read it — you cannot
- *  grant someone access to a folder without being able to name them. Full user administration
- *  stays admin-only above. */
-app.get('/api/users/directory', async (req, reply) => {
+/** Pending invitations: email addresses added to this project that have not signed in yet. */
+app.get('/api/folders/:id/invites', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
-  const rows = await query(
-    `SELECT id, display_name AS "displayName", email FROM users WHERE active ORDER BY display_name`
-  )
-  return { users: rows }
+  const { id } = req.params as { id: string }
+  if (!atLeast(await effectiveAccess(user.id, id), 'viewer')) {
+    return reply.code(403).send({ error: 'No access to this project.' })
+  }
+  return { invites: await folderInvites(id) }
+})
+
+/** Add someone by email. They do not need an AmFile account — see folders.inviteEmail. */
+app.post('/api/folders/:id/invites', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const body = z
+    .object({ email: z.string().min(3), access: z.enum(['viewer', 'editor', 'owner']) })
+    .safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'An email address and an access level are required.' })
+  const result = await inviteEmail(user, id, body.data.email, body.data.access)
+  if (!result.ok) return reply.code(403).send({ error: result.error })
+  broadcast('documents:changed', { reason: 'permissions-changed', documentId: id })
+  return result
+})
+
+app.delete('/api/folders/:id/invites/:email', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id, email } = req.params as { id: string; email: string }
+  const problem = await revokeInvite(user, id, decodeURIComponent(email))
+  if (problem) return reply.code(403).send({ error: problem })
+  return { ok: true }
 })
 
 // --------------------------------------------------------------------------- documents
 app.get('/api/documents', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
-  return { documents: await listDocuments() }
+  return { documents: await listDocuments(user) }
 })
 
 app.post('/api/documents', async (req, reply) => {
@@ -269,6 +275,9 @@ app.get('/api/documents/:id/history', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   return { history: await documentHistory(id) }
 })
 
@@ -335,8 +344,8 @@ app.post('/api/documents/:id/unlock', async (req, reply) => {
   if (!user) return
   const { id } = req.params as { id: string }
   const force = Boolean((req.body as { force?: boolean } | undefined)?.force)
-  if (force && !requireRole(user, 'admin')) {
-    return reply.code(403).send({ error: 'Only an administrator can force a check-in.' })
+  if (force && !atLeast(await accessForDocument(user.id, id), 'owner')) {
+    return reply.code(403).send({ error: 'Only an owner of this project can force a check-in.' })
   }
   await releaseLock(user, id, force)
   broadcast('lock:changed', { documentId: id, lockedBy: null, lockedByUserId: null })
@@ -355,6 +364,9 @@ app.get('/api/documents/:id/comments', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   return { comments: await listComments(id) }
 })
 
@@ -362,6 +374,9 @@ app.post('/api/documents/:id/comments', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'editor')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   const body = z
     .object({ markId: z.string().min(1), quotedText: z.string(), body: z.string().min(1) })
     .safeParse(req.body)
@@ -375,6 +390,9 @@ app.post('/api/documents/:id/comments/:markId/resolve', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id, markId } = req.params as { id: string; markId: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'editor')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   await resolveComment(user, id, markId)
   broadcast('comments:changed', { documentId: id }, user.id)
   return { ok: true }
@@ -384,6 +402,9 @@ app.delete('/api/documents/:id/comments/:markId', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id, markId } = req.params as { id: string; markId: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'editor')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   await deleteComment(user, id, markId)
   broadcast('comments:changed', { documentId: id }, user.id)
   return { ok: true }
@@ -463,6 +484,11 @@ app.get('/api/proposals/:id/comments', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id } = req.params as { id: string }
+  const p = await getProposal(id)
+  if (!p) return reply.code(404).send({ error: 'No such proposal.' })
+  if (!atLeast(await accessForDocument(user.id, p.documentId), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   return { comments: await listProposalComments(id) }
 })
 
@@ -472,8 +498,13 @@ app.post('/api/proposals/:id/comments', async (req, reply) => {
   const { id } = req.params as { id: string }
   const body = z.object({ body: z.string().min(1) }).safeParse(req.body)
   if (!body.success) return reply.code(400).send({ error: 'body is required.' })
+  const target = await getProposal(id)
+  if (!target) return reply.code(404).send({ error: 'No such proposal.' })
+  if (!atLeast(await accessForDocument(user.id, target.documentId), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   await addProposalComment(user, id, body.data.body)
-  const p = await getProposal(id)
+  const p = target
   if (p) broadcast('proposals:changed', { documentId: p.documentId, proposalId: id, by: user.displayName })
   return { ok: true }
 })
@@ -483,13 +514,35 @@ app.get('/api/audit', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { documentId, limit } = req.query as { documentId?: string; limit?: string }
-  const rows = await query(
-    `SELECT id, occurred_at, printed_name, action, document_id, revision_before, revision_after, reason
-       FROM audit_log ${documentId ? 'WHERE document_id = $1' : ''}
-      ORDER BY id DESC LIMIT ${Math.min(Number(limit ?? 200), 1000)}`,
-    documentId ? [documentId] : []
-  )
-  return { entries: rows }
+  const cap = Math.min(Number(limit ?? 200) || 200, 1000)
+
+  if (documentId) {
+    if (!atLeast(await accessForDocument(user.id, documentId), 'viewer')) {
+      return reply.code(403).send({ error: 'You do not have access to this document.' })
+    }
+    return {
+      entries: await query(
+        `SELECT id, occurred_at, printed_name, action, document_id, revision_before, revision_after, reason
+           FROM audit_log WHERE document_id = $1 ORDER BY id DESC LIMIT ${cap}`,
+        [documentId]
+      )
+    }
+  }
+
+  // No document asked for: everything you can reach, plus your own actions. There is no
+  // administrator, so nobody gets a view of the whole estate.
+  return {
+    entries: await query(
+      `SELECT a.id, a.occurred_at, a.printed_name, a.action, a.document_id,
+              a.revision_before, a.revision_after, a.reason
+         FROM audit_log a
+         LEFT JOIN documents d ON d.id = a.document_id
+        WHERE a.user_id = $1
+           OR (d.folder_id IS NOT NULL AND amfile_effective_access($1, d.folder_id) IS NOT NULL)
+        ORDER BY a.id DESC LIMIT ${cap}`,
+      [user.id]
+    )
+  }
 })
 
 app.get('/api/audit/verify', async (req, reply) => {

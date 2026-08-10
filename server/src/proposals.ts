@@ -186,7 +186,7 @@ export async function acceptProposal(user: SessionUser, id: string, reason: stri
   if (!proposal) return { ok: false, error: 'No such proposal.' }
   if (proposal.status !== 'open') return { ok: false, error: 'This proposal has already been resolved.' }
 
-  // Only a folder owner (or an admin, which resolves to owner) may accept. Authors cannot
+  // Only an owner of the project may accept. Authors cannot
   // approve their own work into the record without owner rights.
   if (!atLeast(await accessForDocument(user.id, proposal.documentId), 'owner')) {
     return { ok: false, error: 'You need owner access on this folder to accept a proposal.' }

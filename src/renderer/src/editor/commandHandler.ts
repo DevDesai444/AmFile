@@ -7,6 +7,7 @@ import { handleLayoutCommand } from './commands/layoutCommands'
 import { handleDesignCommand } from './commands/designCommands'
 import { handleReferenceCommand } from './commands/referenceCommands'
 import { handleReviewCommand } from './commands/reviewCommands'
+import { handleMailingsCommand } from './commands/mailingsCommands'
 
 const LINE_SPACINGS = [1, 1.15, 1.5, 2]
 
@@ -50,7 +51,8 @@ const GROUP_HANDLERS = [
   handleLayoutCommand,
   handleDesignCommand,
   handleReferenceCommand,
-  handleReviewCommand
+  handleReviewCommand,
+  handleMailingsCommand
 ]
 
 export function handleEditorCommand(editor: Editor, command: string, payload?: unknown): void {
@@ -174,11 +176,33 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
     }
 
     case 'edit.cut':
-      document.execCommand('cut')
+    case 'edit.copy': {
+      // execCommand was the only path here, and it throws where it is unavailable rather
+      // than reporting failure. Go through the clipboard API and keep execCommand as the
+      // fallback, so the ribbon buttons behave like Ctrl-X/Ctrl-C everywhere.
+      const { from, to, empty } = editor.state.selection
+      if (empty) {
+        toast('Select something to ' + (command === 'edit.cut' ? 'cut' : 'copy') + ' first.')
+        return
+      }
+      const text = editor.state.doc.textBetween(from, to, '\n', ' ')
+      const remove = (): void => {
+        if (command === 'edit.cut') chain().deleteSelection().run()
+      }
+      if (navigator.clipboard?.writeText) {
+        void navigator.clipboard
+          .writeText(text)
+          .then(remove)
+          .catch(() => toast('The clipboard is not available.', 'warn'))
+        return
+      }
+      try {
+        document.execCommand(command === 'edit.cut' ? 'cut' : 'copy')
+      } catch {
+        toast('The clipboard is not available.', 'warn')
+      }
       return
-    case 'edit.copy':
-      document.execCommand('copy')
-      return
+    }
     case 'edit.paste': {
       // Electron's renderer can read the system clipboard directly; execCommand('paste') is
       // blocked, which is why this button previously did nothing at all.
@@ -193,6 +217,13 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
     case 'edit.select':
       chain().selectAll().run()
       return
+
+    case 'outline.goto': {
+      const pos = Number(payload)
+      if (!Number.isFinite(pos)) return
+      editor.chain().focus().setTextSelection(Math.min(pos + 1, editor.state.doc.content.size)).scrollIntoView().run()
+      return
+    }
     case 'edit.formatPainter':
       copyOrApplyFormatting(editor)
       return
@@ -229,6 +260,6 @@ function copyOrApplyFormatting(editor: Editor): void {
   toast('Formatting applied.')
 }
 
-function toast(message: string): void {
-  useToastStore.getState().push(message)
+function toast(message: string, tone: 'info' | 'warn' | 'error' = 'info'): void {
+  useToastStore.getState().push(message, tone)
 }

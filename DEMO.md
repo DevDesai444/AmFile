@@ -1,7 +1,7 @@
 # AmFile — demo runbook
 
-Read this first. It tells you exactly what to run, what to show, and — importantly — what
-**not** to click, so nothing surprises you in front of an audience.
+Read this first. It tells you what to run, what to show, and what **not** to click, so nothing
+surprises you in front of an audience.
 
 ---
 
@@ -21,7 +21,7 @@ Wait for `AmFile server listening on http://127.0.0.1:8787`.
 cd ~/dev/AmFile && npm run dev
 ```
 
-The AmFile window opens on the login screen.
+The AmFile window opens on the sign-in screen.
 
 > The server needs the Databricks CLI signed in, because the database is Lakebase and it
 > authenticates with a Databricks token. If the server errors on startup, run
@@ -37,110 +37,143 @@ Should print `{"ok":true,"service":"amfile-server"}`.
 
 ---
 
-## 2. Accounts
+## 2. Who can sign in
 
-All four use the password **`AmFile2026!`**
+There are no sample accounts and no "create account" screen. **AmFile issues no accounts at
+all** — you sign in with GitHub, and the verified email GitHub gives us is your identity.
 
-| Email | Name | Roles |
-|---|---|---|
-| `riya.patel@amneal.com` | Riya Patel | author, reviewer |
-| `arjun.mehta@amneal.com` | Arjun Mehta | author |
-| `sara.khan@amneal.com` | Sara Khan | reviewer, approver |
-| `admin@amneal.com` | System Administrator | admin, author |
+The database currently holds exactly one user (`devdesai@amneal.com`) and no projects, so the
+first thing you will do on stage is create one.
+
+### Before the demo: one 60-second setup step
+
+GitHub sign-in needs a public client id, and only you can create it — GitHub has no API for
+registering an OAuth app.
+
+1. Go to <https://github.com/settings/applications/new>
+2. **Application name**: `AmFile` · **Homepage URL**: anything, e.g. `https://amneal.com`
+3. **Authorization callback URL**: anything, e.g. `https://amneal.com` — it is never used, the
+   device flow has no redirect
+4. Create it, then on the app page tick **Enable Device Flow** and save
+5. Copy the **Client ID** and start the server with it:
+
+```bash
+cd ~/dev/AmFile/server && AMFILE_GITHUB_CLIENT_ID=Ov23xxxxxxxxxxxx npm start
+```
+
+There is no client secret to copy — the device flow does not use one, which is why it suits a
+desktop app.
+
+**If you skip this step** the server reports `github: false` and the sign-in screen falls back
+to email and password (`devdesai@amneal.com`). Everything else in the demo works identically.
+Nobody is ever shown a GitHub button that cannot work.
 
 ---
 
 ## 3. The demo, in order
 
 ### A. Sign in
-Sign in as **Riya**. Point out the login screen enforces real controls — five failed attempts
-locks the account for 15 minutes, passwords expire after 90 days. Her initials appear top
-right; the status bar bottom right says **Connected**.
+Click **Sign in with GitHub**. A six-character code appears and github.com opens in the real
+browser; type the code, approve, and the app signs you in. Nothing is typed into AmFile itself.
 
-### B. The document list is a database, not a folder
-The left panel lists documents from Postgres with a revision number on each. This is not a
-file share — every document has an identity, a version history and an audit trail.
+Point out the button underneath: **"I don't have a GitHub account"** opens a one-line prompt
+pointing at github.com/signup. That is the entire onboarding story — there is no invite email
+to chase and no administrator to ask.
 
-### C. Open and edit
-Click **3.2.P.5 Control of Drug Product**. The title bar shows the revision and
-**CHECKED OUT TO YOU** — Riya now holds the lock, and a padlock appears on that row.
+### B. Create a project
+**New project** on the welcome screen. Name it (e.g. `ANDA 217-445 — Rivastigmine TDS`).
 
-Type an edit. Press **Cmd-S**. The revision number increments.
+You are its owner. Say plainly: *there is no administrator in AmFile.* Nobody at Amneal — not
+IT, not me — can see this project unless you add them. The consequence is worth stating too: if
+every owner of a project leaves, the project is unreachable. Adding a second owner is the only
+recovery path, and that is deliberate.
 
-### D. Two people at once — the money shot
-You need a second user. Easiest is a second terminal:
+### C. Add people by email
+**People** (welcome screen, or the ribbon under *File → Workspace*). Type a colleague's email
+and choose Read only / Can edit / Owner.
 
-```bash
-cd ~/dev/AmFile && ./scripts/demo-second-user.sh
-```
+The important bit: **they do not need an AmFile account, and they do not need one yet.** The row
+shows as *Invited*. The first time anyone signs in with that address — today or next month —
+the invitation becomes real access automatically and the project is simply there.
 
-That signs in as the admin, force-checks-in the document, and saves a new revision.
+Demonstrate on a second machine if you have one: sign in, and the project is already listed.
 
-Watch Riya's window, without touching it:
-- the tree revision number jumps
-- a banner appears: **"System Administrator saved revision N of this document"**
-- click **Reload** and the other person's content appears
+### D. A document
+**New document** into the project. It opens in the editor with the full ribbon.
 
-### E. Conflicts are refused, not merged badly
-While Riya has the document checked out, the script's first attempt to save as Arjun is
-**refused** — the server returns `locked_by_other`. Nobody's work gets silently overwritten.
-This is deliberate: for regulatory documents, refusing is safer than auto-merging.
+Type. The title bar shows **Unsaved**, then **Saved** and a version number after Ctrl/Cmd-S.
+Version numbers are the only versioning an analyst ever sees.
 
-### F. Part 11 — the audit trail
-Open the **Audit** tab in the right dock.
+### E. Two people at once
+With a colleague signed in to the same project on another machine, both open the document.
+Their edits arrive live, highlighted, and hovering a highlight names who made it.
 
-- Every action is there: opened, checked out, saved, forced check-in — with who and when.
-- **Version history** lists every revision with its author and time.
-- Click **Verify audit integrity** → *"All N audit records verified; chain intact."*
+### F. Propose and review
+An editor's save becomes a **change proposal** rather than overwriting the document. Open the
+**Proposals** panel: the reviewer sees a word-level diff — not "this paragraph changed" but the
+exact words, `90.0` struck out and `95.0` inserted — and can **Accept**, **Close**, or
+**Comment**.
 
-Explain what that button proves: the audit table rejects UPDATE, DELETE and TRUNCATE at the
-database level, and every row is hash-chained to the one before it. If someone with database
-access alters a record, the chain breaks and this button says so, naming the row.
+Accepting creates the next revision and credits **the author**, not the approver. Show that in
+the History panel.
 
-If you want to *show* that (optional, and it leaves the chain broken until you reset):
+If two people changed the same sentence, the merge refuses to guess and reports a conflict with
+all three versions side by side. Say why: silently picking one is how a specification acquires a
+number nobody approved.
 
-```bash
-cd ~/dev/AmFile && ./scripts/demo-tamper.sh
-```
+### G. The audit trail
+Open the **Audit** panel. Every action, with the printed name of who did it and when.
 
-Then click Verify again — it reports the exact altered row.
+Click **Verify**. It re-computes the hash chain and reports `chain intact`. This is tamper
+*detection* — each row's hash includes the previous row's, so removing or editing any row is
+visible. Deletion is separately blocked by database triggers, including `TRUNCATE`.
 
----
+> Want to prove it rather than assert it? `scripts/demo-tamper.sh` edits a row directly in the
+> database and then shows Verify catching it. Run it before the demo, not during.
 
-## 4. Be straight about what is not finished
-
-If asked, these are honest answers, and giving them is better than being caught out:
-
-- **The AI panel is not connected to any model.** The replies are canned. The panel says so.
-- **The Compliance panel shows example findings, not real analysis.** The engine is being
-  built in a separate project. The panel says so.
-- **Comments do not survive reopening a document** yet.
-- **E-signatures** have a database schema but no UI.
-- **Word feature gaps:** mail merge, citations/bibliography, and the Design theme presets are
-  not wired. Everything on the Home tab, tables, images, links, headers/footers, page setup,
-  find & replace and track changes do work.
-- **This runs against a Databricks *dev* workspace on AWS.** Real submission records must not
-  go in it, and QA has to qualify the platform before real use.
-- **AmFile is not "Part 11 compliant"** and nobody can make software compliant. It implements
-  the technical controls. Validation, SOPs and training records are Amneal QA's to own.
+### H. Compliance
+**Check document** in the ribbon (Review tab), and the folder-wide check from the Navigator
+footer. Both are wired end to end but currently call a stub — the real engine lives in
+`deficiency-chatbot` and drops in behind `ComplianceProvider` without touching the UI.
 
 ---
 
-## 5. If something breaks
+## 4. What not to click
+
+| Control | Why |
+|---|---|
+| Dictate, Translate, Thesaurus | Deliberately refused — they would send your text to an external service. Clicking gives a clear explanation, which is fine to show if asked. |
+| 3D model | No representation in a `.docx` submission. |
+| Macros | AmFile does not execute user scripts, by design. |
+| Split view | Not built. **New window** then **Side by side** does the same job. |
+
+---
+
+## 5. If something goes wrong
 
 | Symptom | Fix |
 |---|---|
-| Login says "Cannot reach the AmFile server" | Terminal 1 died. Restart `npm start` in `server/`. |
-| Server won't start, Postgres auth error | `databricks auth login`, then retry. |
-| Status bar says **Offline** | The WebSocket dropped; it retries every 2s. Restarting the server is enough. |
-| Document says locked by someone who isn't there | Locks expire 90s after the last heartbeat. Wait, or sign in as admin and force check-in. |
-| Audit verify says the chain is broken | Someone ran the tamper script. Reset (below). |
+| Status bar says **Offline** | The server stopped. Restart terminal 1. The app reconnects on its own. |
+| Server exits at startup with a token error | `databricks auth login`, then start it again. |
+| Sign in with GitHub is missing | `AMFILE_GITHUB_CLIENT_ID` is not set — see section 2. Email/password still works. |
+| GitHub says the device code expired | Codes last 15 minutes. Click Cancel and start again. |
+| "You do not have access to this project" | Access is per project and never global. Ask an owner to add your address. |
+| Document says locked by someone who isn't there | Locks expire 90 seconds after the last heartbeat. Wait, or an owner can force check-in. |
 
-**Full reset to a clean demo state:**
+---
 
-```bash
-cd ~/dev/AmFile && ./scripts/demo-reset.sh
-```
+## 6. Honest notes
 
-Wipes documents, revisions and the audit log, re-applies the schema and re-seeds the four
-users and four documents. Safe on the dev instance only.
+Things worth knowing before someone asks:
+
+- **The audit log was reset to empty on 10 Aug 2026**, when the invented sample accounts and
+  demo folders were deleted. Deleting those rows broke the hash chain — Verify caught it, which
+  is the guarantee working — so the chain was restarted from zero. In production this must never
+  happen; a record is a record. It is noted here rather than hidden because an audit trail whose
+  history is quietly discontinuous is worse than one that says where it starts.
+- **Traffic is unencrypted HTTP on loopback.** Fine for a laptop demo, not for real submission
+  records. TLS is a deployment concern, not a code change.
+- **Compliance checking is a stub.** The UI, the streaming and the folder-wide run are real; the
+  findings are not.
+- **GAMP 5 Category 5.** Bespoke software carries the heaviest validation burden. Nothing here
+  substitutes for that exercise.

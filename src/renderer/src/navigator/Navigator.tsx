@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, PanelLeftClose, Search, ShieldCheck } from 'lucide-react'
+import { ChevronRight, Plus, PanelLeftClose, Search, ShieldCheck, X } from 'lucide-react'
 import { useUiStore } from '../store/uiStore'
 import { useFolderStore } from '../store/folderStore'
 import FolderTree from './FolderTree'
@@ -12,6 +12,8 @@ export default function Navigator(): React.JSX.Element {
   const treeTab = useUiStore((s) => s.treeTab)
   const setTreeTab = useUiStore((s) => s.setTreeTab)
   const selectedFolder = useFolderStore((s) => s.selectedFolder)
+  const navFilter = useUiStore((s) => s.navFilter)
+  const setNavFilter = useUiStore((s) => s.setNavFilter)
 
   if (!leftOpen) {
     return (
@@ -60,9 +62,21 @@ export default function Navigator(): React.JSX.Element {
         </button>
       </div>
 
+      {/* This was a static label styled to look like a search field. It now filters the
+          tree for real — a control that looks editable has to be editable. */}
       <div className="navigator-filter">
         <Search size={12} strokeWidth={1.5} />
-        <span>Filter files and sections</span>
+        <input
+          type="search"
+          value={navFilter}
+          placeholder="Filter files and sections"
+          onChange={(e) => setNavFilter(e.target.value)}
+        />
+        {navFilter && (
+          <button type="button" aria-label="Clear filter" onClick={() => setNavFilter('')}>
+            <X size={11} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
 
       <div className="navigator-body">

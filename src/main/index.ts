@@ -8,7 +8,7 @@ import { registerComplianceHandlers } from './ipc/compliance'
 import { registerAiHandlers } from './ipc/ai'
 import { registerWindowHandlers, registerWindowIpc } from './ipc/window'
 
-function createMainWindow(): BrowserWindow {
+export function createMainWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -80,7 +80,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  registerWindowIpc()
+  registerWindowIpc(createMainWindow)
   registerFsHandlers()
   registerDocxHandlers()
   registerPrintHandlers()

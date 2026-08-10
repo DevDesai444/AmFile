@@ -161,7 +161,7 @@ export const RIBBON: Record<RibbonTabId, RibbonGroup[]> = {
       rows: [
         [{ id: 'rulebook', label: 'Rulebook v4.2', icon: BookOpen, act: 'workspace.rulebook' }],
         [{ id: 'history', label: 'Version history', icon: History, act: 'workspace.history' }],
-        [{ id: 'users', label: 'Users', icon: Users, act: 'app.users' }],
+        [{ id: 'people', label: 'People', icon: Users, act: 'app.people' }],
         [{ id: 'settings', label: 'Settings', icon: SettingsIcon, act: 'app.settings' }]
       ]
     }

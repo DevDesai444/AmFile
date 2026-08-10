@@ -3,13 +3,14 @@ import { randomBytes, createHash } from 'node:crypto'
 import { query, queryOne } from './db.js'
 import { writeAudit } from './audit.js'
 
-export type Role = 'author' | 'reviewer' | 'approver' | 'admin'
-
+/**
+ * Who you are. Notably there is no role: AmFile has no global authority. What you can do is
+ * decided per project by whoever owns that project, and nothing else grants access.
+ */
 export interface SessionUser {
   id: string
   email: string
   displayName: string
-  roles: Role[]
   mustChangePassword: boolean
 }
 
@@ -46,11 +47,6 @@ interface UserRow {
   failed_login_count: number
   locked_until: Date | null
   password_updated_at: Date | null
-}
-
-export async function rolesFor(userId: string): Promise<Role[]> {
-  const rows = await query<{ role: Role }>('SELECT role FROM user_roles WHERE user_id = $1', [userId])
-  return rows.map((r) => r.role)
 }
 
 export interface LoginResult {
@@ -96,7 +92,7 @@ export async function login(email: string, password: string, userAgent?: string)
   }
 
   if (!user || !user.password_hash) return fail('unknown_user', 'Incorrect email or password.')
-  if (!user.active) return fail('inactive', 'This account is deactivated. Contact an administrator.')
+  if (!user.active) return fail('inactive', 'This account is deactivated.')
   if (user.locked_until && user.locked_until > new Date()) {
     return fail('locked', `Account is temporarily locked. Try again after ${user.locked_until.toLocaleTimeString()}.`)
   }
@@ -122,6 +118,10 @@ export async function login(email: string, password: string, userAgent?: string)
   await query('INSERT INTO login_attempts (email, user_id, succeeded) VALUES ($1,$2,true)', [normalized, user.id])
   await writeAudit({ userId: user.id, printedName: user.display_name, action: 'auth.login' })
 
+  // Turn any invitations sent to this address into real access. This is what lets someone
+  // be added to a project before they have ever opened AmFile.
+  await query('SELECT amfile_claim_invitations($1, $2)', [user.id, user.email])
+
   const ageDays = user.password_updated_at
     ? (Date.now() - user.password_updated_at.getTime()) / 86_400_000
     : Infinity
@@ -134,7 +134,6 @@ export async function login(email: string, password: string, userAgent?: string)
       id: user.id,
       email: user.email,
       displayName: user.display_name,
-      roles: await rolesFor(user.id),
       mustChangePassword: user.must_change_password || ageDays > PASSWORD_MAX_AGE_DAYS
     }
   }
@@ -154,7 +153,6 @@ export async function resolveSession(token: string | undefined): Promise<Session
     id: row.id,
     email: row.email,
     displayName: row.display_name,
-    roles: await rolesFor(row.id),
     mustChangePassword: row.must_change_password
   }
 }
@@ -181,8 +179,4 @@ export async function changePassword(user: SessionUser, current: string, next: s
   await query('UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL', [user.id])
   await writeAudit({ userId: user.id, printedName: user.displayName, action: 'auth.password_changed' })
   return null
-}
-
-export function requireRole(user: SessionUser, ...allowed: Role[]): boolean {
-  return user.roles.some((r) => allowed.includes(r)) || user.roles.includes('admin')
 }

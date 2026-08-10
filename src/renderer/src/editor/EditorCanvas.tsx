@@ -8,7 +8,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import LinkExtension from '@tiptap/extension-link'
-import ImageExtension from '@tiptap/extension-image'
+import { PositionedImage } from './extensions/imageAttributes'
 import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableHeader from '@tiptap/extension-table-header'
@@ -32,6 +32,8 @@ import { useDocumentIO } from './useDocumentIO'
 import { insertImage } from './insertImage'
 import { useCommentStore } from '../store/commentStore'
 import { useDocumentStore } from '../store/documentStore'
+import { useUiStore } from '../store/uiStore'
+import { useReferencesStore } from '../store/referencesStore'
 import { useComplianceStore } from '../store/complianceStore'
 import { useServerDocsStore } from '../store/serverDocsStore'
 import { useServerDocument } from './useServerDocument'
@@ -50,6 +52,22 @@ export default function EditorCanvas(): React.JSX.Element {
   const footerText = useDocumentStore((s) => s.footerText)
   const resetToken = useDocumentStore((s) => s.resetToken)
   const checkDocument = useComplianceStore((s) => s.checkDocument)
+  const watermark = useDocumentStore((s) => s.watermark)
+  const pageColor = useDocumentStore((s) => s.pageColor)
+  const pageBorders = useDocumentStore((s) => s.pageBorders)
+  const lineNumbers = useDocumentStore((s) => s.lineNumbers)
+  const restrictEditing = useDocumentStore((s) => s.restrictEditing)
+  const spellcheck = useDocumentStore((s) => s.spellcheck)
+  const accent = useDocumentStore((s) => s.accent)
+  const paragraphSpacingPt = useDocumentStore((s) => s.paragraphSpacingPt)
+  const shadowEffects = useDocumentStore((s) => s.shadowEffects)
+  const columns = useDocumentStore((s) => s.pageSetup.columns)
+  const pageView = useUiStore((s) => s.pageView)
+  const showRuler = useUiStore((s) => s.showRuler)
+  const showGridlines = useUiStore((s) => s.showGridlines)
+  const markupMode = useUiStore((s) => s.markupMode)
+  const searchToken = useUiStore((s) => s.searchToken)
+  const footnotes = useReferencesStore((s) => s.footnotes)
 
   const editor = useEditor({
     extensions: [
@@ -68,7 +86,7 @@ export default function EditorCanvas(): React.JSX.Element {
       Color,
       Highlight.configure({ multicolor: true }),
       LinkExtension.configure({ openOnClick: false }),
-      ImageExtension,
+      PositionedImage,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -84,7 +102,7 @@ export default function EditorCanvas(): React.JSX.Element {
     }
   })
 
-  const { save: saveLocal, openFromPath, exportPdf } = useDocumentIO(editor)
+  const { save: saveLocal, openFromPath, exportPdf, printDocument } = useDocumentIO(editor)
   const { saveToServer, reloadFromServer } = useServerDocument(editor)
   const documentId = useDocumentStore((s) => s.documentId)
   const lockedByOther = useDocumentStore((s) => s.lockedByOther)
@@ -113,6 +131,10 @@ export default function EditorCanvas(): React.JSX.Element {
         return
       }
       if (command === 'print') {
+        void printDocument()
+        return
+      }
+      if (command === 'exportPdf') {
         void exportPdf()
         return
       }
@@ -134,7 +156,7 @@ export default function EditorCanvas(): React.JSX.Element {
       }
       handleEditorCommand(editor, command, payload)
     })
-  }, [editor, save, exportPdf, checkDocument, filePath, fileName])
+  }, [editor, save, exportPdf, printDocument, checkDocument, filePath, fileName])
 
   useEffect(() => {
     if (pendingOpenPath && editor) {
@@ -149,6 +171,23 @@ export default function EditorCanvas(): React.JSX.Element {
     editor.commands.setContent('<p></p>')
     useCommentStore.getState().clear()
   }, [editor, resetToken])
+
+  // Read mode and Restrict editing both make the document read-only; a server lock held by
+  // someone else does too. Whichever is in force, the editor must actually refuse edits.
+  useEffect(() => {
+    if (!editor) return
+    editor.setEditable(!restrictEditing && pageView !== 'read' && !lockedByOther)
+  }, [editor, restrictEditing, pageView, lockedByOther])
+
+  useEffect(() => {
+    if (!editor) return
+    editor.setOptions({ editorProps: { attributes: { class: 'editor-page-content', spellcheck: String(spellcheck) } } })
+  }, [editor, spellcheck])
+
+  // The title bar's Search button opens the same find bar as Ctrl/Cmd-F.
+  useEffect(() => {
+    if (searchToken > 0) setFindState('find')
+  }, [searchToken])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent): void => {
@@ -190,9 +229,49 @@ export default function EditorCanvas(): React.JSX.Element {
       {findState !== 'closed' && (
         <FindReplaceBar editor={editor} showReplace={findState === 'replace'} onClose={() => setFindState('closed')} />
       )}
-      <div className="editor-page" style={{ transform: `scale(${zoom / 100})` }}>
+
+      {showRuler && (
+        <div className="editor-ruler" aria-hidden>
+          {Array.from({ length: 21 }, (_, i) => (
+            <span key={i} className={i % 5 === 0 ? 'editor-ruler-tick is-major' : 'editor-ruler-tick'}>
+              {i % 5 === 0 ? i : ''}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div
+        className={[
+          'editor-page',
+          `editor-page--${pageView}`,
+          showGridlines ? 'is-gridlines' : '',
+          lineNumbers ? 'is-linenumbers' : '',
+          pageBorders ? 'is-bordered' : '',
+          shadowEffects ? 'is-shadowed' : '',
+          `markup-${markupMode}`
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={{
+          transform: `scale(${zoom / 100})`,
+          ...(pageColor ? { background: pageColor } : {}),
+          ['--accent' as string]: accent,
+          ['--para-spacing' as string]: `${paragraphSpacingPt}pt`,
+          ...(columns > 1 ? { ['--columns' as string]: String(columns) } : {})
+        }}
+      >
+        {watermark && <div className="editor-watermark">{watermark}</div>}
         {headerText && <div className="editor-page-header">{headerText}</div>}
         <EditorContent editor={editor} />
+        {footnotes.length > 0 && (
+          <div className="editor-footnotes">
+            {footnotes.map((f) => (
+              <div key={f.id} className="editor-footnote">
+                <sup>{f.number}</sup> {f.text}
+              </div>
+            ))}
+          </div>
+        )}
         {footerText && <div className="editor-page-footer">{footerText.replace('{page}', '1')}</div>}
       </div>
     </div>

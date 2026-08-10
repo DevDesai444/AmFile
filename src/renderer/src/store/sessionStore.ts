@@ -11,6 +11,7 @@ interface SessionState {
 
   restore: () => Promise<void>
   signIn: (email: string, password: string) => Promise<boolean>
+  signInWithToken: (token: string, user: ApiUser) => void
   signOut: () => Promise<void>
   setServerOnline: (online: boolean) => void
   setPresence: (userId: string, displayName: string, online: boolean) => void
@@ -50,6 +51,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ busy: false, error: err instanceof Error ? err.message : 'Sign in failed.' })
       return false
     }
+  },
+
+  /** GitHub device flow finished elsewhere; adopt the session it produced. */
+  signInWithToken: (token, user) => {
+    setToken(token)
+    set({ user, status: 'signed-in', busy: false, error: null })
   },
 
   signOut: async () => {

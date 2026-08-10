@@ -11,6 +11,7 @@ export function useDocumentIO(editor: Editor | null): {
   save: () => Promise<void>
   openFromPath: (path: string) => Promise<void>
   exportPdf: () => Promise<void>
+  printDocument: () => void
 } {
   const filePath = useDocumentStore((s) => s.filePath)
   const fileName = useDocumentStore((s) => s.fileName)
@@ -93,5 +94,15 @@ export function useDocumentIO(editor: Editor | null): {
     await window.amfile.print.exportPdf(outPath, pageSetup, headerHtml, footerHtml)
   }, [fileName, pageSetup, headerText, footerText])
 
-  return { save, openFromPath, exportPdf }
+  /**
+   * Opens the system print dialog. Print used to be wired straight to exportPdf, so the
+   * Print button silently produced a file instead of printing and the Export PDF button
+   * did nothing at all. A print stylesheet (editor.css, `@media print`) hides the shell so
+   * only the page itself reaches the printer.
+   */
+  const printDocument = useCallback(() => {
+    window.print()
+  }, [])
+
+  return { save, openFromPath, exportPdf, printDocument }
 }

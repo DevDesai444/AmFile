@@ -233,3 +233,194 @@
   padding: 4px 8px !important;
   white-space: nowrap;
 }
+
+/* ── View modes ─────────────────────────────────────────────────────────────
+   Print layout is the default page look above. The other three change the page
+   metaphor rather than just its zoom, which is what makes the View tab do
+   something visible rather than only setting a flag. */
+.editor-page--read {
+  width: 900px;
+  padding: 64px 96px;
+  min-height: auto;
+}
+.editor-page--web {
+  width: 100%;
+  max-width: none;
+  min-height: auto;
+  padding: 40px 56px;
+  box-shadow: none;
+}
+.editor-page--draft {
+  width: 100%;
+  max-width: 1100px;
+  min-height: auto;
+  padding: 24px 32px;
+  box-shadow: none;
+  font-family: var(--font-ui, system-ui);
+}
+.editor-page--draft .editor-page-header,
+.editor-page--draft .editor-page-footer {
+  display: none;
+}
+
+/* Multi-column body text (Layout → Columns). */
+.editor-page[style*='--columns'] .editor-page-content {
+  column-count: var(--columns);
+  column-gap: 28px;
+  column-rule: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Design → Paragraph spacing. */
+.editor-page-content p {
+  margin-bottom: var(--para-spacing, 6pt);
+}
+
+/* Design → Effects (page shadow) and Page borders. */
+.editor-page.is-shadowed {
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.65);
+}
+.editor-page.is-bordered .editor-page-content {
+  border: 1.5pt solid var(--accent, #749dc4);
+  padding: 18px 22px;
+}
+
+/* View → Gridlines. */
+.editor-page.is-gridlines .editor-page-content {
+  background-image: linear-gradient(rgba(120, 140, 165, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 140, 165, 0.16) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Layout → Line numbers. */
+.editor-page.is-linenumbers .editor-page-content > p,
+.editor-page.is-linenumbers .editor-page-content > h1,
+.editor-page.is-linenumbers .editor-page-content > h2,
+.editor-page.is-linenumbers .editor-page-content > h3 {
+  counter-increment: amfile-line;
+  position: relative;
+}
+.editor-page.is-linenumbers .editor-page-content {
+  counter-reset: amfile-line;
+}
+.editor-page.is-linenumbers .editor-page-content > p::before,
+.editor-page.is-linenumbers .editor-page-content > h1::before,
+.editor-page.is-linenumbers .editor-page-content > h2::before,
+.editor-page.is-linenumbers .editor-page-content > h3::before {
+  content: counter(amfile-line);
+  position: absolute;
+  left: -46px;
+  width: 32px;
+  text-align: right;
+  font-size: 8pt;
+  color: var(--page-text-faint);
+  user-select: none;
+}
+
+/* Design → Watermark. */
+.editor-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 84pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(120, 140, 165, 0.13);
+  transform: rotate(-32deg);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.editor-page-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* View → Ruler. */
+.editor-ruler {
+  width: 794px;
+  margin: 0 auto 10px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.14));
+  padding-bottom: 3px;
+}
+.editor-ruler-tick {
+  flex: 1;
+  font-size: 8px;
+  color: var(--page-text-faint, #8a94a6);
+  text-align: left;
+  border-left: 1px solid rgba(140, 155, 175, 0.3);
+  padding-left: 2px;
+  height: 13px;
+}
+.editor-ruler-tick.is-major {
+  border-left-color: rgba(140, 155, 175, 0.7);
+  height: 17px;
+}
+
+/* References → Footnotes, rendered under the page body. */
+.editor-footnotes {
+  margin-top: 28px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(120, 140, 165, 0.4);
+  font-size: 9pt;
+  line-height: 1.45;
+  color: var(--page-text-faint);
+}
+.editor-footnote sup {
+  margin-right: 4px;
+  font-weight: 600;
+}
+
+/* Review → Show markup / All markup. Simple markup shows the final text; hidden
+   markup drops the revision styling altogether. */
+.editor-page.markup-simple ins.track-insertion {
+  background: none;
+  text-decoration: none;
+  color: inherit;
+}
+.editor-page.markup-simple del.track-deletion {
+  display: none;
+}
+.editor-page.markup-none ins.track-insertion {
+  background: none;
+  text-decoration: none;
+  color: inherit;
+}
+.editor-page.markup-none del.track-deletion {
+  display: none;
+}
+.editor-page.markup-none span[data-comment-id] {
+  background: none;
+  border-bottom: none;
+}
+
+/* ── Print ──────────────────────────────────────────────────────────────────
+   File → Print opens the system dialog on the live window, so everything that
+   is not the page has to be taken out of the printed output. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .editor-page,
+  .editor-page * {
+    visibility: visible;
+  }
+  .editor-page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    box-shadow: none;
+    transform: none !important;
+    width: 100%;
+  }
+  .find-replace-bar,
+  .editor-ruler,
+  .editor-banner {
+    display: none !important;
+  }
+}

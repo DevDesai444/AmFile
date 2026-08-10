@@ -394,6 +394,34 @@
   font-size: 11px;
   border-bottom: 1px solid var(--dv2);
 }
+.navigator-filter input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--fg, inherit);
+  font: inherit;
+}
+.navigator-filter input::placeholder {
+  color: var(--mut2);
+}
+.navigator-filter input::-webkit-search-cancel-button {
+  display: none;
+}
+.navigator-filter button {
+  flex: none;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--mut2);
+  cursor: pointer;
+  padding: 2px;
+}
+.navigator-filter button:hover {
+  color: var(--fg, inherit);
+}
 .navigator-body {
   flex: 1;
   overflow-y: auto;
@@ -1216,8 +1244,24 @@
   gap: 8px;
   margin-top: 14px;
 }
-.permissions-add select:first-child {
+.permissions-add input[type='email'] {
   flex: 1;
+  min-width: 0;
+  background: var(--deep);
+  border: 1px solid var(--dv);
+  color: var(--ink);
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.permissions-add input[type='email']:focus-visible {
+  border-color: var(--color-accent);
+}
+/* An invitation is not access yet, so it should not read as an equal row. */
+.permissions-pending .permissions-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--mut2);
 }
 .permissions-add-btn {
   background: var(--color-accent);
@@ -1776,6 +1820,96 @@
   font-size: 11px;
   line-height: 1.4;
 }
+.login-github {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  background: var(--ink);
+  color: var(--deep);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.login-github:hover:not(:disabled) {
+  background: #fff;
+}
+.login-github:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.login-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: var(--mut2);
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.login-link:hover {
+  color: var(--color-accent);
+}
+.login-device {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.login-device-lead {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  color: var(--mut2);
+}
+.login-device-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--dv);
+  background: var(--deep);
+}
+.login-device-code code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 21px;
+  letter-spacing: 0.22em;
+  color: var(--color-accent);
+}
+.login-device-code button {
+  background: none;
+  border: none;
+  color: var(--mut2);
+  padding: 2px;
+}
+.login-device-code button:hover {
+  color: var(--color-accent);
+}
+.login-device-wait {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--mut2);
+}
+.login-nudge {
+  width: 320px;
+  padding: 24px;
+  text-align: center;
+}
+.login-nudge h2 {
+  margin: 10px 0 6px;
+  font-size: 15px;
+}
+.login-nudge p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--mut2);
+}
+
 .login-footnote {
   margin-top: 20px;
   max-width: 340px;
@@ -2016,4 +2150,43 @@
 }
 .agent-log-agent {
   color: var(--mut2);
+}
+
+/* Status-bar controls. These read-outs were plain text but sit where a user expects to
+   click (Word puts the same switches here), so they are real buttons now. */
+.statusbar-btn {
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.statusbar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg, inherit);
+}
+.statusbar-zoom-step {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 3px;
+  border-radius: 3px;
+}
+.statusbar-zoom-step:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.statusbar-zoom-track {
+  cursor: pointer;
+}
+.statusbar-zoom-track:focus-visible {
+  outline: 1px solid var(--acc, #749dc4);
+  outline-offset: 2px;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText, Lock, Users, FolderPlus, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useFolderStore, type FolderNode } from '../store/folderStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -12,7 +12,28 @@ const ACCESS_LABEL: Record<string, string> = {
   owner: 'Owner'
 }
 
-function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.JSX.Element {
+/**
+ * Keeps a folder when its own name matches, or when anything beneath it does — so filtering
+ * on a document name still shows the path you need to click through to reach it.
+ */
+function filterTree(nodes: FolderNode[], q: string): FolderNode[] {
+  if (!q) return nodes
+  const needle = q.toLowerCase()
+  const walk = (node: FolderNode): FolderNode | null => {
+    const children = node.children.map(walk).filter((n): n is FolderNode => n !== null)
+    const documents = node.documents.filter(
+      (d) => d.path.toLowerCase().includes(needle) || d.title.toLowerCase().includes(needle)
+    )
+    const selfMatches = node.name.toLowerCase().includes(needle)
+    if (!selfMatches && children.length === 0 && documents.length === 0) return null
+    // A matching folder keeps everything inside it; a folder kept only because of a
+    // descendant shows just the matching part.
+    return selfMatches ? node : { ...node, children, documents }
+  }
+  return nodes.map(walk).filter((n): n is FolderNode => n !== null)
+}
+
+function FolderRow({ node, depth, forceOpen }: { node: FolderNode; depth: number; forceOpen: boolean }): React.JSX.Element {
   const expanded = useFolderStore((s) => s.expanded)
   const toggle = useFolderStore((s) => s.toggle)
   const openPermissions = useFolderStore((s) => s.openPermissions)
@@ -26,7 +47,9 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
   const dirty = useDocumentStore((s) => s.dirty)
   const setView = useUiStore((s) => s.setView)
 
-  const isOpen = expanded.has(node.id)
+  // While a filter is active every surviving branch is shown expanded, otherwise the
+  // matches stay hidden behind collapsed folders and the filter looks broken.
+  const isOpen = forceOpen || expanded.has(node.id)
   const canEdit = node.access === 'editor' || node.access === 'owner'
 
   return (
@@ -115,7 +138,7 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }): React.
       {isOpen && (
         <>
           {node.children.map((c) => (
-            <FolderRow key={c.id} node={c} depth={depth + 1} />
+            <FolderRow key={c.id} node={c} depth={depth + 1} forceOpen={forceOpen} />
           ))}
           {node.documents.map((d) => {
             const lockedByOther = d.lockedBy && d.lockedBy.userId !== me?.id
@@ -157,7 +180,10 @@ export default function FolderTree(): React.JSX.Element {
   const error = useFolderStore((s) => s.error)
   const refresh = useFolderStore((s) => s.refresh)
   const createFolder = useFolderStore((s) => s.createFolder)
+  const navFilter = useUiStore((s) => s.navFilter)
   const [busy, setBusy] = useState(false)
+
+  const visible = useMemo(() => filterTree(folders, navFilter.trim()), [folders, navFilter])
 
   if (error) {
     return (
@@ -180,8 +206,13 @@ export default function FolderTree(): React.JSX.Element {
           <p className="navigator-empty-hint">An owner or administrator needs to grant you access.</p>
         </div>
       )}
-      {folders.map((f) => (
-        <FolderRow key={f.id} node={f} depth={0} />
+      {folders.length > 0 && visible.length === 0 && (
+        <div className="navigator-empty">
+          <p>Nothing matches “{navFilter.trim()}”.</p>
+        </div>
+      )}
+      {visible.map((f) => (
+        <FolderRow key={f.id} node={f} depth={0} forceOpen={navFilter.trim().length > 0} />
       ))}
 
       <div className="tree-actions">

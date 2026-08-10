@@ -1,17 +1,18 @@
 # AmFile
 
 Internal Amneal Pharmaceuticals document authoring desktop app — a Word-class editor for
-regulatory documents (eCTD submissions), with a real filesystem-backed document tree, and a
+regulatory documents (eCTD submissions), with a server-backed project tree, and a
 right-hand dock for AI research assistance and compliance checking.
 
 Dark theme, Electron + React + TypeScript, ships for macOS and Windows.
 
 ## Status
 
-**Working:** multi-user editing with email/password accounts and roles, document check-out
-locking, append-only revision history, live updates between users, a hash-chained audit trail
-with in-app integrity verification, server-persisted comments, and a Word-class editor
-(formatting, styles, tables, images, links, headers/footers, page setup, find & replace,
+**Working:** sign-in with GitHub, projects owned by whoever created them, contributors added by
+email address whether or not they have used AmFile before, change proposals with word-level diff
+and three-way merge, append-only revision history, live updates between users, a hash-chained
+audit trail with in-app integrity verification, server-persisted comments, and a Word-class
+editor (formatting, styles, tables, images, links, headers/footers, page setup, find & replace,
 track changes with accept/reject, print to PDF, native `.docx` import/export).
 
 **Stubbed:** the AI research chat and the compliance-check panels. Both say so in the UI. The
@@ -39,7 +40,27 @@ cd server && npm start   # API + database
 npm run dev              # the desktop app
 ```
 
-Sign in with `riya.patel@amneal.com` / `AmFile2026!` (see DEMO.md for all four accounts).
+Sign in with GitHub. There are no sample accounts and no "create account" screen — AmFile
+issues no accounts of its own, and the verified email GitHub returns is your identity.
+
+GitHub sign-in needs a public client id (no secret; the device flow does not use one). Register
+an OAuth app at <https://github.com/settings/applications/new>, tick **Enable Device Flow**, and
+start the server with it:
+
+```bash
+cd server && AMFILE_GITHUB_CLIENT_ID=Ov23xxxxxxxxxxxx npm start
+```
+
+Without it the server advertises `github: false` and the app falls back to email/password, so no
+unusable button is ever shown. See **[DEMO.md](DEMO.md)** for the full walkthrough.
+
+### Who can see what
+
+There is no administrator. A top-level folder is a project; whoever creates it owns it and
+decides who else gets in, and access inherits down to every sub-folder and document. Nobody sees
+a project because of a role — roles no longer exist. The trade-off is stated rather than hidden:
+if every owner of a project leaves, that project is unreachable, and adding a second owner is
+the only recovery path.
 
 The server needs the Databricks CLI signed in, because the database is Lakebase and it
 authenticates with a Databricks token. Run `databricks auth login` if the server won't start.
