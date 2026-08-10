@@ -18,6 +18,8 @@ import {
   deleteComment
 } from './documents.js'
 import { writeAudit, verifyAuditChain } from './audit.js'
+import { folderTreeFor, createFolder, folderMembers, setFolderAccess, effectiveAccess, accessForDocument, atLeast } from './folders.js'
+import { listUsers, inviteUser, setActive, setRoles, resetPassword } from './users.js'
 import { query } from './db.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
@@ -92,6 +94,131 @@ app.post('/api/auth/change-password', async (req, reply) => {
   return { ok: true }
 })
 
+// ------------------------------------------------------------------------------- users
+const ROLE_ENUM = z.enum(['author', 'reviewer', 'approver', 'admin'])
+
+/** Every route here is admin-only; user administration is an authority check under 11.10(g). */
+async function requireAdmin(req: never, reply: never): Promise<SessionUser | null> {
+  const user = await requireUser(req, reply)
+  if (!user) return null
+  if (!requireRole(user, 'admin')) {
+    ;(reply as unknown as { code: (n: number) => { send: (b: unknown) => void } })
+      .code(403)
+      .send({ error: 'Administrator role required.' })
+    return null
+  }
+  return user
+}
+
+app.get('/api/users', async (req, reply) => {
+  const user = await requireAdmin(req as never, reply as never)
+  if (!user) return
+  return { users: await listUsers() }
+})
+
+app.post('/api/users/invite', async (req, reply) => {
+  const actor = await requireAdmin(req as never, reply as never)
+  if (!actor) return
+  const body = z
+    .object({
+      email: z.string().email(),
+      displayName: z.string().min(1),
+      roles: z.array(ROLE_ENUM).min(1)
+    })
+    .safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'Email, name and at least one role are required.' })
+  const result = await inviteUser(actor, body.data.email, body.data.displayName, body.data.roles)
+  if (!result.ok) return reply.code(409).send({ error: result.error })
+  return result
+})
+
+app.post('/api/users/:id/active', async (req, reply) => {
+  const actor = await requireAdmin(req as never, reply as never)
+  if (!actor) return
+  const { id } = req.params as { id: string }
+  const body = z.object({ active: z.boolean() }).safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'active is required.' })
+  if (id === actor.id && !body.data.active) {
+    return reply.code(400).send({ error: 'You cannot deactivate your own account.' })
+  }
+  await setActive(actor, id, body.data.active)
+  return { ok: true }
+})
+
+app.post('/api/users/:id/roles', async (req, reply) => {
+  const actor = await requireAdmin(req as never, reply as never)
+  if (!actor) return
+  const { id } = req.params as { id: string }
+  const body = z.object({ roles: z.array(ROLE_ENUM) }).safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'roles is required.' })
+  if (id === actor.id && !body.data.roles.includes('admin')) {
+    return reply.code(400).send({ error: 'You cannot remove your own administrator role.' })
+  }
+  await setRoles(actor, id, body.data.roles)
+  return { ok: true }
+})
+
+app.post('/api/users/:id/reset-password', async (req, reply) => {
+  const actor = await requireAdmin(req as never, reply as never)
+  if (!actor) return
+  const { id } = req.params as { id: string }
+  return { temporaryPassword: await resetPassword(actor, id) }
+})
+
+// ----------------------------------------------------------------------------- folders
+app.get('/api/folders', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  return { folders: await folderTreeFor(user) }
+})
+
+app.post('/api/folders', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const body = z.object({ name: z.string().min(1), parentId: z.string().uuid().nullable() }).safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'name and parentId are required.' })
+  const result = await createFolder(user, body.data.name, body.data.parentId)
+  if ('error' in result) return reply.code(403).send(result)
+  broadcast('documents:changed', { reason: 'folder-created', documentId: result.id })
+  return result
+})
+
+app.get('/api/folders/:id/members', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  if (!atLeast(await effectiveAccess(user.id, id), 'viewer')) {
+    return reply.code(403).send({ error: 'No access to this folder.' })
+  }
+  return { members: await folderMembers(id) }
+})
+
+app.post('/api/folders/:id/members', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const body = z
+    .object({ userId: z.string().uuid(), access: z.enum(['viewer', 'editor', 'owner']).nullable() })
+    .safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'userId and access are required.' })
+  const problem = await setFolderAccess(user, id, body.data.userId, body.data.access)
+  if (problem) return reply.code(403).send({ error: problem })
+  broadcast('documents:changed', { reason: 'permissions-changed', documentId: id })
+  return { ok: true }
+})
+
+/** Minimal directory for the permission picker. Any signed-in user may read it — you cannot
+ *  grant someone access to a folder without being able to name them. Full user administration
+ *  stays admin-only above. */
+app.get('/api/users/directory', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const rows = await query(
+    `SELECT id, display_name AS "displayName", email FROM users WHERE active ORDER BY display_name`
+  )
+  return { users: rows }
+})
+
 // --------------------------------------------------------------------------- documents
 app.get('/api/documents', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
@@ -102,10 +229,14 @@ app.get('/api/documents', async (req, reply) => {
 app.post('/api/documents', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
-  if (!requireRole(user, 'author')) return reply.code(403).send({ error: 'You do not have authoring rights.' })
-  const body = z.object({ path: z.string().min(1), title: z.string().min(1) }).safeParse(req.body)
-  if (!body.success) return reply.code(400).send({ error: 'path and title are required.' })
-  const doc = await createDocument(user, body.data.path, body.data.title)
+  const body = z
+    .object({ path: z.string().min(1), title: z.string().min(1), folderId: z.string().uuid() })
+    .safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'path, title and folderId are required.' })
+  if (!atLeast(await effectiveAccess(user.id, body.data.folderId), 'editor')) {
+    return reply.code(403).send({ error: 'You have read-only access to this folder.' })
+  }
+  const doc = await createDocument(user, body.data.path, body.data.title, body.data.folderId)
   broadcast('documents:changed', { reason: 'created', documentId: doc.id })
   return { document: doc }
 })
@@ -114,6 +245,9 @@ app.get('/api/documents/:id', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
   const rev = (req.query as { revision?: string }).revision
   const doc = await getDocument(id, rev ? Number(rev) : undefined)
   if (!doc) return reply.code(404).send({ error: 'No such document' })
@@ -131,8 +265,11 @@ app.get('/api/documents/:id/history', async (req, reply) => {
 app.post('/api/documents/:id/save', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
-  if (!requireRole(user, 'author')) return reply.code(403).send({ error: 'You do not have authoring rights.' })
   const { id } = req.params as { id: string }
+  // Folder access decides who may write here, not the global role.
+  if (!atLeast(await accessForDocument(user.id, id), 'editor')) {
+    return reply.code(403).send({ error: 'You have read-only access to this folder.' })
+  }
   const body = z
     .object({
       baseRevision: z.number().int().nonnegative(),
@@ -174,6 +311,9 @@ app.post('/api/documents/:id/lock', async (req, reply) => {
   const user = await requireUser(req as never, reply as never)
   if (!user) return
   const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'editor')) {
+    return reply.code(403).send({ error: 'You have read-only access to this folder.' })
+  }
   const result = await acquireLock(user, id)
   if (!result.ok) return reply.code(409).send(result)
   broadcast('lock:changed', { documentId: id, lockedBy: user.displayName, lockedByUserId: user.id })

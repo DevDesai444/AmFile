@@ -912,6 +912,338 @@
   border-color: var(--color-accent);
 }
 
+/* ---------- Users admin ---------- */
+.users-view {
+  max-width: 780px;
+}
+.users-note {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--mut2);
+  margin: 0 0 16px;
+  max-width: 620px;
+}
+.users-invite {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.users-invite-row {
+  display: flex;
+  gap: 12px;
+}
+.users-invite .field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.users-invite label {
+  font-family: var(--font-label);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mut2);
+}
+.users-invite input {
+  background: var(--deep);
+  border: 1px solid var(--dv);
+  padding: 7px 9px;
+  font-size: 12px;
+}
+.users-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.role-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--dv);
+  padding: 3px 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mut2);
+}
+.role-chip.is-on {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+.users-issued {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--med) 45%, transparent);
+  background: color-mix(in srgb, var(--med) 10%, transparent);
+  font-size: 11.5px;
+}
+.users-issued strong {
+  color: var(--med);
+}
+.users-issued-pw {
+  margin-top: 5px;
+  color: var(--ink);
+}
+.users-issued-pw code {
+  font-family: var(--font-label);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  background: var(--deep);
+  border: 1px solid var(--dv);
+  padding: 2px 7px;
+}
+.users-issued-note {
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: var(--mut2);
+}
+.users-issued button {
+  color: var(--mut);
+  padding: 4px;
+}
+.users-issued button:hover {
+  color: var(--ink);
+}
+.users-table {
+  border: 1px solid var(--dv);
+  margin-bottom: 14px;
+}
+.users-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--dv2);
+}
+.users-row:last-child {
+  border-bottom: none;
+}
+.users-row.is-inactive {
+  opacity: 0.45;
+}
+.users-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.users-name {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.users-email {
+  font-size: 10.5px;
+  color: var(--mut2);
+}
+.users-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.users-actions button {
+  color: var(--mut2);
+  padding: 4px 6px;
+  font-size: 10.5px;
+  border: 1px solid transparent;
+}
+.users-actions button:hover {
+  color: var(--ink);
+  border-color: var(--dv);
+}
+
+/* ---------- Folder tree ---------- */
+.tree-row--folder {
+  color: var(--ink);
+}
+.tree-caret-btn {
+  flex: none;
+  color: var(--mut2);
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+.tree-caret-btn:hover {
+  color: var(--ink);
+}
+.tree-access {
+  flex: none;
+  font-family: var(--font-label);
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 4px;
+  border: 1px solid var(--dv);
+  color: var(--mut2);
+}
+.tree-access--owner {
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+.tree-access--viewer {
+  color: var(--med);
+  border-color: color-mix(in srgb, var(--med) 35%, transparent);
+}
+.tree-mini-btn {
+  flex: none;
+  color: var(--mut2);
+  opacity: 0;
+  padding: 2px;
+}
+.tree-row:hover .tree-mini-btn {
+  opacity: 1;
+}
+.tree-mini-btn:hover {
+  color: var(--color-accent);
+}
+.tree-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 9px;
+}
+.navigator-empty-hint {
+  font-size: 10px;
+  color: var(--mut2);
+}
+
+/* ---------- Permissions dialog ---------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.permissions-dialog {
+  width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 18px 20px;
+  background: var(--chrome);
+}
+.permissions-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.permissions-kicker {
+  font-family: var(--font-label);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mut2);
+}
+.permissions-head h2 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 2px 0 0;
+}
+.permissions-head button {
+  color: var(--mut);
+}
+.permissions-head button:hover {
+  color: var(--ink);
+}
+.permissions-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--mut2);
+  margin-bottom: 12px;
+}
+.permissions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.permissions-table td {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--dv2);
+  vertical-align: middle;
+}
+.permissions-name {
+  font-size: 12px;
+  color: var(--ink);
+}
+.permissions-email {
+  font-size: 10px;
+  color: var(--mut2);
+}
+.permissions-empty {
+  color: var(--mut2);
+  font-size: 11px;
+  text-align: center;
+  padding: 14px 0;
+}
+.permissions-inherited {
+  font-size: 10.5px;
+  color: var(--mut2);
+  font-style: italic;
+}
+.permissions-actions {
+  text-align: right;
+}
+.permissions-actions button {
+  font-size: 10px;
+  color: var(--mut2);
+  border: 1px solid var(--dv);
+  padding: 3px 8px;
+}
+.permissions-actions button:hover {
+  color: var(--hi);
+  border-color: color-mix(in srgb, var(--hi) 45%, transparent);
+}
+.permissions-dialog select {
+  background: var(--deep);
+  border: 1px solid var(--dv);
+  color: var(--ink);
+  font-size: 11px;
+  padding: 4px 6px;
+}
+.permissions-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.permissions-add select:first-child {
+  flex: 1;
+}
+.permissions-add-btn {
+  background: var(--color-accent);
+  color: #0f1113;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 14px;
+}
+.permissions-add-btn:disabled {
+  opacity: 0.4;
+}
+.permissions-legend {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dv2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--mut2);
+  line-height: 1.4;
+}
+.permissions-legend strong {
+  color: var(--mut);
+}
+
 /* ---------- Toasts ---------- */
 .toaster {
   position: fixed;

@@ -15,6 +15,18 @@ export interface ApiUser {
   mustChangePassword: boolean
 }
 
+export interface AdminUser {
+  id: string
+  email: string
+  displayName: string
+  roles: ApiUser['roles']
+  active: boolean
+  lastSeenAt: string | null
+  mustChangePassword: boolean
+  lockedUntil: string | null
+  passwordUpdatedAt: string | null
+}
+
 export interface ApiDocument {
   id: string
   path: string
@@ -34,6 +46,37 @@ export interface ApiRevision {
   contentHash: string
   authorName: string
   createdAt: string
+}
+
+export interface ApiFolderNode {
+  id: string
+  name: string
+  parentId: string | null
+  access: 'viewer' | 'editor' | 'owner'
+  children: ApiFolderNode[]
+  documents: Array<{
+    id: string
+    path: string
+    title: string
+    currentRevision: number
+    updatedAt: string | null
+    lockedBy: { userId: string; displayName: string } | null
+  }>
+}
+
+export interface FolderMember {
+  userId: string
+  displayName: string
+  email: string
+  access: 'viewer' | 'editor' | 'owner'
+  /** True when the access comes from a parent folder rather than a grant on this one. */
+  inherited: boolean
+}
+
+export interface DirectoryUser {
+  id: string
+  displayName: string
+  email: string
 }
 
 export interface AuditEntry {
@@ -127,12 +170,44 @@ export const api = {
       body: JSON.stringify({ current, next })
     }),
 
+  listUsers: () => request<{ users: AdminUser[] }>('/api/users'),
+
+  inviteUser: (email: string, displayName: string, roles: ApiUser['roles']) =>
+    request<{ ok: true; user: AdminUser; temporaryPassword: string }>('/api/users/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, displayName, roles })
+    }),
+
+  setUserActive: (id: string, active: boolean) =>
+    request<{ ok: true }>(`/api/users/${id}/active`, { method: 'POST', body: JSON.stringify({ active }) }),
+
+  setUserRoles: (id: string, roles: ApiUser['roles']) =>
+    request<{ ok: true }>(`/api/users/${id}/roles`, { method: 'POST', body: JSON.stringify({ roles }) }),
+
+  resetUserPassword: (id: string) =>
+    request<{ temporaryPassword: string }>(`/api/users/${id}/reset-password`, { method: 'POST' }),
+
+  listFolders: () => request<{ folders: ApiFolderNode[] }>('/api/folders'),
+
+  createFolder: (name: string, parentId: string | null) =>
+    request<{ id: string }>('/api/folders', { method: 'POST', body: JSON.stringify({ name, parentId }) }),
+
+  folderMembers: (folderId: string) => request<{ members: FolderMember[] }>(`/api/folders/${folderId}/members`),
+
+  setFolderAccess: (folderId: string, userId: string, access: 'viewer' | 'editor' | 'owner' | null) =>
+    request<{ ok: true }>(`/api/folders/${folderId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId, access })
+    }),
+
+  userDirectory: () => request<{ users: DirectoryUser[] }>('/api/users/directory'),
+
   listDocuments: () => request<{ documents: ApiDocument[] }>('/api/documents'),
 
-  createDocument: (path: string, title: string) =>
+  createDocument: (path: string, title: string, folderId: string) =>
     request<{ document: ApiDocument }>('/api/documents', {
       method: 'POST',
-      body: JSON.stringify({ path, title })
+      body: JSON.stringify({ path, title, folderId })
     }),
 
   getDocument: (id: string, revision?: number) =>

@@ -1,7 +1,8 @@
 import { ChevronRight, Plus, PanelLeftClose, Search, ShieldCheck } from 'lucide-react'
 import { useUiStore } from '../store/uiStore'
 import { useTreeStore } from '../store/treeStore'
-import ServerDocTree from './ServerDocTree'
+import FolderTree from './FolderTree'
+import PermissionsDialog from './PermissionsDialog'
 import OutlineTree from './OutlineTree'
 import { runRibbonAction } from '../ribbon/ribbonActions'
 
@@ -57,7 +58,7 @@ export default function Navigator(): React.JSX.Element {
       </div>
 
       <div className="navigator-body">
-        {treeTab === 'project' ? <ServerDocTree /> : <OutlineTree />}
+        {treeTab === 'project' ? <FolderTree /> : <OutlineTree />}
       </div>
 
       {rootPath && (
@@ -68,6 +69,7 @@ export default function Navigator(): React.JSX.Element {
           </button>
         </div>
       )}
+      <PermissionsDialog />
     </div>
   )
 }

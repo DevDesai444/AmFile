@@ -29,13 +29,16 @@ async function main(): Promise<void> {
     if (existing) {
       id = existing.id
       await query(
-        'UPDATE users SET password_hash = $2, password_updated_at = now(), display_name = $3, active = true WHERE id = $1',
+        'UPDATE users SET password_hash = $2, password_updated_at = now(), display_name = $3, active = true, must_change_password = false WHERE id = $1',
         [id, await hashPassword(u.password), u.name]
       )
     } else {
       const row = await query<{ id: string }>(
+        // Demo accounts deliberately skip the first-login password change: their passwords are
+        // published in DEMO.md, so forcing a reset only adds friction. Real accounts created
+        // through the invite flow still get must_change_password = true.
         `INSERT INTO users (email, display_name, password_hash, password_updated_at, must_change_password)
-         VALUES ($1,$2,$3, now(), true) RETURNING id`,
+         VALUES ($1,$2,$3, now(), false) RETURNING id`,
         [u.email, u.name, await hashPassword(u.password)]
       )
       id = row[0].id

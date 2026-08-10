@@ -14,6 +14,7 @@ interface SessionState {
   signOut: () => Promise<void>
   setServerOnline: (online: boolean) => void
   setPresence: (userId: string, displayName: string, online: boolean) => void
+  clearMustChangePassword: () => void
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -57,6 +58,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   setServerOnline: (serverOnline) => set({ serverOnline }),
+
+  clearMustChangePassword: () =>
+    set((s) => ({ user: s.user ? { ...s.user, mustChangePassword: false } : null })),
 
   setPresence: (userId, displayName, online) =>
     set(() => {

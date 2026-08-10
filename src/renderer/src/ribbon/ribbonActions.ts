@@ -45,6 +45,10 @@ export async function runRibbonAction(act: string): Promise<void> {
       ui.setView('settings')
       return
 
+    case 'app.users':
+      ui.setView('users')
+      return
+
     case 'compliance.checkDocument':
       ui.setDock('compliance', { open: true })
       runEditorCommand('compliance.checkDocument')

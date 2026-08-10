@@ -11,6 +11,8 @@ import Dock from './dock/Dock'
 import StatusBar from './statusbar/StatusBar'
 import Welcome from './welcome/Welcome'
 import LoginView from './welcome/LoginView'
+import ChangePasswordView from './welcome/ChangePasswordView'
+import UsersView from './welcome/UsersView'
 import SettingsView from './welcome/SettingsView'
 import EditorCanvas from './editor/EditorCanvas'
 import FolderRun from './dock/FolderRun'
@@ -19,6 +21,7 @@ import { useDocumentStore } from './store/documentStore'
 import { useComplianceStore } from './store/complianceStore'
 import { useSessionStore } from './store/sessionStore'
 import { useServerDocsStore } from './store/serverDocsStore'
+import { useFolderStore } from './store/folderStore'
 import { connectEvents } from './api/client'
 import Toaster from './common/Toaster'
 
@@ -27,11 +30,13 @@ export default function App(): React.JSX.Element {
   const dirty = useDocumentStore((s) => s.dirty)
   const applyFolderProgress = useComplianceStore((s) => s.applyFolderProgress)
   const status = useSessionStore((s) => s.status)
+  const user = useSessionStore((s) => s.user)
   const restore = useSessionStore((s) => s.restore)
   const setServerOnline = useSessionStore((s) => s.setServerOnline)
   const setPresence = useSessionStore((s) => s.setPresence)
   const handleServerEvent = useServerDocsStore((s) => s.handleServerEvent)
   const refreshDocuments = useServerDocsStore((s) => s.refresh)
+  const refreshFolders = useFolderStore((s) => s.refresh)
 
   useEffect(() => {
     void restore()
@@ -53,6 +58,7 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     if (status !== 'signed-in') return
     void refreshDocuments()
+    void refreshFolders()
     return connectEvents(
       (e) => {
         if (e.event === 'presence:changed') {
@@ -60,10 +66,18 @@ export default function App(): React.JSX.Element {
           return
         }
         handleServerEvent(e)
+        // Keep the folder tree's per-document badges in step with the flat store.
+        if (e.event === 'lock:changed') {
+          useFolderStore.getState().applyLockChange(e.payload.documentId, e.payload.lockedBy, e.payload.lockedByUserId)
+        } else if (e.event === 'document:updated') {
+          useFolderStore.getState().applyRevisionChange(e.payload.documentId, e.payload.revision, e.payload.savedAt)
+        } else if (e.event === 'documents:changed') {
+          void useFolderStore.getState().refresh()
+        }
       },
       (online) => setServerOnline(online)
     )
-  }, [status, handleServerEvent, refreshDocuments, setPresence, setServerOnline])
+  }, [status, handleServerEvent, refreshDocuments, refreshFolders, setPresence, setServerOnline])
 
   if (status === 'unknown') {
     return (
@@ -87,6 +101,21 @@ export default function App(): React.JSX.Element {
     )
   }
 
+  // A one-time password stays one-time only if the app is unusable until it's replaced.
+  if (user?.mustChangePassword) {
+    return (
+      <div className="app-shell">
+        <TitleBar />
+        <div className="app-body">
+          <div className="app-center">
+            <ChangePasswordView />
+          </div>
+        </div>
+        <Toaster />
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <TitleBar />
@@ -99,6 +128,7 @@ export default function App(): React.JSX.Element {
           {view === 'editor' && <EditorCanvas />}
           {view === 'folder' && <FolderRun />}
           {view === 'settings' && <SettingsView />}
+          {view === 'users' && <UsersView />}
         </div>
         <Dock />
       </div>

@@ -56,12 +56,17 @@ export async function listDocuments(): Promise<DocumentSummary[]> {
   }))
 }
 
-export async function createDocument(user: SessionUser, path: string, title: string): Promise<DocumentSummary> {
+export async function createDocument(
+  user: SessionUser,
+  path: string,
+  title: string,
+  folderId: string
+): Promise<DocumentSummary> {
   const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
   const doc = await transaction(async (client) => {
     const inserted = await client.query<{ id: string }>(
-      'INSERT INTO documents (path, title, created_by, current_revision) VALUES ($1,$2,$3,1) RETURNING id',
-      [path, title, user.id]
+      'INSERT INTO documents (path, title, created_by, current_revision, folder_id) VALUES ($1,$2,$3,1,$4) RETURNING id',
+      [path, title, user.id, folderId]
     )
     const id = inserted.rows[0].id
     await client.query(
