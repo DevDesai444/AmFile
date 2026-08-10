@@ -20,6 +20,16 @@ import {
 import { writeAudit, verifyAuditChain } from './audit.js'
 import { folderTreeFor, createFolder, folderMembers, setFolderAccess, effectiveAccess, accessForDocument, atLeast } from './folders.js'
 import { listUsers, inviteUser, setActive, setRoles, resetPassword } from './users.js'
+import {
+  listProposals,
+  getProposal,
+  saveProposal,
+  reviewProposal,
+  acceptProposal,
+  closeProposal,
+  listProposalComments,
+  addProposalComment
+} from './proposals.js'
 import { query } from './db.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
@@ -376,6 +386,95 @@ app.delete('/api/documents/:id/comments/:markId', async (req, reply) => {
   const { id, markId } = req.params as { id: string; markId: string }
   await deleteComment(user, id, markId)
   broadcast('comments:changed', { documentId: id }, user.id)
+  return { ok: true }
+})
+
+// --------------------------------------------------------------------------- proposals
+app.get('/api/documents/:id/proposals', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
+  return { proposals: await listProposals(id) }
+})
+
+app.post('/api/documents/:id/proposals', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  if (!atLeast(await accessForDocument(user.id, id), 'editor')) {
+    return reply.code(403).send({ error: 'You have read-only access to this folder.' })
+  }
+  const body = z.object({ content: z.unknown(), summary: z.string().nullable().optional() }).safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'content is required.' })
+  const result = await saveProposal(user, id, body.data.content as never, body.data.summary ?? null)
+  broadcast('proposals:changed', { documentId: id, proposalId: result.id, by: user.displayName })
+  return result
+})
+
+app.get('/api/proposals/:id/review', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const review = await reviewProposal(id)
+  if (!review) return reply.code(404).send({ error: 'No such proposal.' })
+  if (!atLeast(await accessForDocument(user.id, review.proposal.documentId), 'viewer')) {
+    return reply.code(403).send({ error: 'You do not have access to this document.' })
+  }
+  return review
+})
+
+app.post('/api/proposals/:id/accept', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const reason = (req.body as { reason?: string } | undefined)?.reason ?? null
+  const result = await acceptProposal(user, id, reason)
+  if (!result.ok) return reply.code(403).send(result)
+  const p = await getProposal(id)
+  if (p) {
+    broadcast('document:updated', {
+      documentId: p.documentId,
+      revision: result.revision ?? 0,
+      savedBy: user.displayName,
+      savedByUserId: user.id,
+      savedAt: new Date().toISOString()
+    })
+    broadcast('proposals:changed', { documentId: p.documentId, proposalId: id, by: user.displayName })
+  }
+  return result
+})
+
+app.post('/api/proposals/:id/close', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const reason = (req.body as { reason?: string } | undefined)?.reason ?? null
+  const p = await getProposal(id)
+  const result = await closeProposal(user, id, reason)
+  if (!result.ok) return reply.code(403).send(result)
+  if (p) broadcast('proposals:changed', { documentId: p.documentId, proposalId: id, by: user.displayName })
+  return result
+})
+
+app.get('/api/proposals/:id/comments', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  return { comments: await listProposalComments(id) }
+})
+
+app.post('/api/proposals/:id/comments', async (req, reply) => {
+  const user = await requireUser(req as never, reply as never)
+  if (!user) return
+  const { id } = req.params as { id: string }
+  const body = z.object({ body: z.string().min(1) }).safeParse(req.body)
+  if (!body.success) return reply.code(400).send({ error: 'body is required.' })
+  await addProposalComment(user, id, body.data.body)
+  const p = await getProposal(id)
+  if (p) broadcast('proposals:changed', { documentId: p.documentId, proposalId: id, by: user.displayName })
   return { ok: true }
 })
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export type ViewMode = 'welcome' | 'editor' | 'folder' | 'settings' | 'users'
-export type DockTab = 'chat' | 'compliance' | 'comments' | 'audit'
+export type DockTab = 'chat' | 'compliance' | 'comments' | 'audit' | 'proposals'
 export type TreeTab = 'project' | 'outline'
 export type RibbonTabId =
   | 'File'

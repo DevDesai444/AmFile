@@ -4,6 +4,9 @@ import { api, ApiError } from '../api/client'
 import { useDocumentStore } from '../store/documentStore'
 import { useServerDocsStore } from '../store/serverDocsStore'
 import { useCommentStore } from '../store/commentStore'
+import { useProposalStore } from '../store/proposalStore'
+import { useToastStore } from '../common/toastStore'
+import { useSessionStore } from '../store/sessionStore'
 
 /** Renew the lock well inside the server's 90s lease so a slow network doesn't drop it. */
 const HEARTBEAT_MS = 30_000
@@ -13,17 +16,11 @@ export function useServerDocument(editor: Editor | null): {
   reloadFromServer: () => Promise<void>
 } {
   const documentId = useDocumentStore((s) => s.documentId)
-  const revision = useDocumentStore((s) => s.revision)
-  const pageSetup = useDocumentStore((s) => s.pageSetup)
-  const headerText = useDocumentStore((s) => s.headerText)
-  const footerText = useDocumentStore((s) => s.footerText)
   const pendingOpenServerDocId = useDocumentStore((s) => s.pendingOpenServerDocId)
   const clearPendingServerOpen = useDocumentStore((s) => s.clearPendingServerOpen)
   const openServerDocument = useDocumentStore((s) => s.openServerDocument)
-  const setRevision = useDocumentStore((s) => s.setRevision)
   const setLockState = useDocumentStore((s) => s.setLockState)
   const markSaved = useDocumentStore((s) => s.markSaved)
-  const refreshDocs = useServerDocsStore((s) => s.refresh)
   const clearPendingUpdate = useServerDocsStore((s) => s.clearPendingUpdate)
 
   const heartbeat = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -76,36 +73,29 @@ export function useServerDocument(editor: Editor | null): {
     }
   }, [documentId])
 
+  /**
+   * Saving records a change PROPOSAL rather than writing the live document. Nobody blocks
+   * anybody and nothing lands without a reviewer accepting it. Repeated saves update the
+   * same proposal instead of raising a new one.
+   */
   const saveToServer = useCallback(async () => {
     if (!editor || !documentId) return
     try {
-      const res = await api.save(documentId, revision, {
-        content: editor.getJSON(),
-        pageSetup,
-        header: headerText ? { text: headerText } : null,
-        footer: footerText ? { text: footerText } : null
-      })
-      setRevision(res.revision)
+      // Ask for a one-line summary only when opening a new proposal; later saves just update it.
+      const myOpen = useProposalStore
+        .getState()
+        .proposals.find((p) => p.status === 'open' && p.authorId === useSessionStore.getState().user?.id)
+      const summary = myOpen ? null : window.prompt('Briefly, what did you change? (optional)')
+      const res = await api.saveProposal(documentId, editor.getJSON(), summary)
       markSaved()
-      void refreshDocs()
+      await useProposalStore.getState().refresh(documentId)
+      useToastStore
+        .getState()
+        .push(res.created ? 'Proposal raised for review.' : 'Your proposal was updated.')
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        const body = err.body as { code?: string; lockedBy?: string; currentRevision?: number } | null
-        if (body?.code === 'locked_by_other') {
-          window.alert(`Cannot save — ${body.lockedBy} has this document checked out.`)
-          setLockState(false, body.lockedBy ?? 'another user')
-          return
-        }
-        if (body?.code === 'stale') {
-          window.alert(
-            `This document has moved on to revision ${body.currentRevision} since you opened it.\n\nReload it before saving so you don't overwrite someone else's work.`
-          )
-          return
-        }
-      }
-      window.alert(err instanceof Error ? err.message : 'Save failed.')
+      useToastStore.getState().push(err instanceof Error ? err.message : 'Could not save.', 'error')
     }
-  }, [editor, documentId, revision, pageSetup, headerText, footerText, setRevision, markSaved, refreshDocs, setLockState])
+  }, [editor, documentId, markSaved])
 
   const reloadFromServer = useCallback(async () => {
     if (documentId) await load(documentId)

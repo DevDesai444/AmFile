@@ -7,3 +7,4 @@ dist/
 *.tsbuildinfo
 electron.vite.config.js
 electron.vite.config.d.ts
+.env

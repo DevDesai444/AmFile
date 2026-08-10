@@ -85,6 +85,45 @@ export interface DirectoryUser {
   email: string
 }
 
+export interface Proposal {
+  id: string
+  documentId: string
+  authorId: string
+  authorName: string
+  baseRevision: number
+  summary: string | null
+  status: 'open' | 'accepted' | 'closed'
+  createdAt: string
+  updatedAt: string
+  resolvedByName: string | null
+  resultingRevision: number | null
+  /** The document has moved on since this was written. */
+  stale: boolean
+  commentCount: number
+}
+
+export interface WordChange {
+  kind: 'unchanged' | 'added' | 'removed'
+  text: string
+}
+
+export interface ProposalReview {
+  proposal: Proposal
+  diff: {
+    blocks: Array<{ status: 'unchanged' | 'added' | 'removed' | 'modified'; blockType: string; words: WordChange[]; text: string }>
+    summary: { added: number; removed: number; modified: number; wordsAdded: number; wordsRemoved: number }
+  }
+  /** Present only when the proposal is stale and no longer applies cleanly. */
+  conflicts: Array<{ blockIndex: number; base: string; ours: string; theirs: string }> | null
+}
+
+export interface ProposalComment {
+  id: string
+  authorName: string
+  body: string
+  createdAt: string
+}
+
 export interface AuditEntry {
   id: string
   occurred_at: string
@@ -192,6 +231,31 @@ export const api = {
 
   resetUserPassword: (id: string) =>
     request<{ temporaryPassword: string }>(`/api/users/${id}/reset-password`, { method: 'POST' }),
+
+  listProposals: (documentId: string) =>
+    request<{ proposals: Proposal[] }>(`/api/documents/${documentId}/proposals`),
+
+  saveProposal: (documentId: string, content: unknown, summary: string | null) =>
+    request<{ id: string; created: boolean }>(`/api/documents/${documentId}/proposals`, {
+      method: 'POST',
+      body: JSON.stringify({ content, summary })
+    }),
+
+  reviewProposal: (id: string) => request<ProposalReview>(`/api/proposals/${id}/review`),
+
+  acceptProposal: (id: string, reason: string | null) =>
+    request<{ ok: true; revision: number }>(`/api/proposals/${id}/accept`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    }),
+
+  closeProposal: (id: string, reason: string | null) =>
+    request<{ ok: true }>(`/api/proposals/${id}/close`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  proposalComments: (id: string) => request<{ comments: ProposalComment[] }>(`/api/proposals/${id}/comments`),
+
+  addProposalComment: (id: string, body: string) =>
+    request<{ ok: true }>(`/api/proposals/${id}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
 
   listFolders: () => request<{ folders: ApiFolderNode[] }>('/api/folders'),
 
