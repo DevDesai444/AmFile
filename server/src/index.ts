@@ -418,5 +418,12 @@ app.get('/ws', { websocket: true }, async (socket, req) => {
 
 app.get('/api/health', async () => ({ ok: true, service: 'amfile-server' }))
 
-await app.listen({ port: PORT, host: '127.0.0.1' })
-console.log(`AmFile server listening on http://127.0.0.1:${PORT}`)
+// Loopback by default so the server is not exposed unintentionally. Set HOST=0.0.0.0 to let
+// other machines on the network connect — see scripts/serve-lan.sh.
+const HOST = process.env.HOST ?? '127.0.0.1'
+await app.listen({ port: PORT, host: HOST })
+console.log(`AmFile server listening on http://${HOST}:${PORT}`)
+if (HOST === '0.0.0.0') {
+  console.log('Reachable from other machines on this network. Traffic is NOT encrypted —')
+  console.log('acceptable for an internal demo, not for real submission records.')
+}

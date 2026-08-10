@@ -4,7 +4,13 @@
  * document list and editor all share one session token without extra IPC hops.
  */
 
-const BASE = import.meta.env.VITE_AMFILE_SERVER ?? 'http://127.0.0.1:8787'
+/**
+ * host:port of the AmFile server. Comes from VITE_AMFILE_HOST (see .env) so the same value
+ * feeds both this client and the Content-Security-Policy in index.html — if they disagree,
+ * the CSP silently blocks every request and it looks like the server is down.
+ */
+const SERVER_HOST = import.meta.env.VITE_AMFILE_HOST ?? '127.0.0.1:8787'
+const BASE = `http://${SERVER_HOST}`
 const TOKEN_KEY = 'amfile.session'
 
 export interface ApiUser {
