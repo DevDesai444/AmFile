@@ -136,7 +136,15 @@ function ProposalCard({ p, onChanged }: { p: Proposal; onChanged: () => void }):
                 // Cancelling the dialog cancels the acceptance; an empty answer accepts with
                 // no reason. Treating cancel as "accept anyway" would make a mis-click final.
                 if (reason === null) return
-                await act(() => api.acceptProposal(p.id, reason.trim() || null), 'Accepted')
+                await act(async () => {
+                  await api.acceptProposal(p.id, reason.trim() || null)
+                  // Accepting changes the document under whoever is reading it, including the
+                  // person who just clicked. They get no "someone saved" prompt — that is
+                  // suppressed for your own saves — so reopen it for them.
+                  if (useDocumentStore.getState().documentId === p.documentId) {
+                    useDocumentStore.getState().requestOpenServerDoc(p.documentId)
+                  }
+                }, 'Accepted')
               }}
             >
               <Check size={12} strokeWidth={1.5} />

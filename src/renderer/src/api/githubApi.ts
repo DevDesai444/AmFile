@@ -257,14 +257,32 @@ export const githubApi = {
     }
   },
 
+  /**
+   * Open a document.
+   *
+   * Your own open proposal is your working copy. If you have one for this document, it is read
+   * from your branch rather than from the project's — otherwise reopening the document showed
+   * you the version you had changed *away* from, and your own edits looked lost. They were
+   * never lost; they were on a branch nobody was reading.
+   *
+   * Once an owner accepts, the proposal is merged and no longer open, so this falls back to the
+   * project's branch and everybody — the author included — sees the same accepted text.
+   */
   async getDocument(id: string, revision?: number): Promise<{ document: ApiRevision }> {
     const { repo, path } = splitId(id)
-    // Revisions are commits. Asking for an older one means reading the file at that commit.
     let ref: string | undefined
+
     if (revision) {
+      // Revisions are commits. Asking for an older one means reading the file at that commit.
       const commits = await gh.commitsFor(repo, path)
       ref = commits[commits.length - revision]?.sha
+    } else {
+      const mine = (await gh.listProposals(repo, 'open').catch(() => [])).find(
+        (p) => p.author === currentLogin() && p.body?.includes(path)
+      )
+      if (mine) ref = mine.branch
     }
+
     const file = await gh.readJson<StoredDocument>(repo, path, ref)
     if (!file) throw new Error('That document no longer exists in the project.')
     const d = file.content
