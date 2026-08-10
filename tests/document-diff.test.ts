@@ -1,4 +1,4 @@
-import { diffDocuments, mergeDocuments, type PMNode } from '../server/src/diff'
+import { diffDocuments, mergeDocuments, type PMNode } from '../src/shared/diff'
 
 const para = (text: string): PMNode => ({ type: 'paragraph', content: [{ type: 'text', text }] })
 const heading = (text: string): PMNode => ({ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text }] })

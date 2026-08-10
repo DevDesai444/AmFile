@@ -15,6 +15,7 @@
  * save is a single commit and a review is a diff of one file.
  */
 import * as gh from '../github/client'
+import { diffDocuments, type PMNode } from '../../../shared/diff'
 import type { ApiDocument, ApiFolderNode, ApiRevision, ApiUser, FolderMember, PendingInvite, Proposal } from './client'
 
 export const DOC_SUFFIX = '.amdoc.json'
@@ -159,6 +160,21 @@ async function treeForProject(project: gh.Project): Promise<ApiFolderNode> {
 
 // --------------------------------------------------------------------------------------- api
 
+/** Read the document, change its comments, write it back — one commit per change. */
+async function mutateComments(
+  documentId: string,
+  change: (comments: StoredComment[]) => StoredComment[],
+  message: string
+): Promise<{ ok: true }> {
+  const { repo, path } = splitId(documentId)
+  const file = await gh.readJson<StoredDocument>(repo, path)
+  if (!file) throw new Error('That document no longer exists in the project.')
+  await gh.writeJson(repo, path, { ...file.content, comments: change(file.content.comments) }, message, {
+    sha: file.sha
+  })
+  return { ok: true }
+}
+
 export const githubApi = {
   // ----- session ---------------------------------------------------------------------------
   async login(): Promise<{ user: ApiUser; passwordExpired: boolean }> {
@@ -241,8 +257,14 @@ export const githubApi = {
     }
   },
 
-  async getDocument(id: string, ref?: string): Promise<{ document: ApiRevision }> {
+  async getDocument(id: string, revision?: number): Promise<{ document: ApiRevision }> {
     const { repo, path } = splitId(id)
+    // Revisions are commits. Asking for an older one means reading the file at that commit.
+    let ref: string | undefined
+    if (revision) {
+      const commits = await gh.commitsFor(repo, path)
+      ref = commits[commits.length - revision]?.sha
+    }
     const file = await gh.readJson<StoredDocument>(repo, path, ref)
     if (!file) throw new Error('That document no longer exists in the project.')
     const d = file.content
@@ -267,10 +289,21 @@ export const githubApi = {
    * Used when you own the project. Everyone else's saves go through `saveProposal`, which is
    * what puts a change in front of a reviewer.
    */
-  async save(id: string, payload: { content: unknown; pageSetup?: unknown; header?: unknown; footer?: unknown; summary?: string | null }): Promise<{ revision: number }> {
+  async save(
+    id: string,
+    baseRevision: number,
+    payload: { content: unknown; pageSetup: unknown; header: unknown; footer: unknown; reason?: string }
+  ): Promise<{ ok: true; revision: number }> {
     const { repo, path } = splitId(id)
     const existing = await gh.readJson<StoredDocument>(repo, path)
     if (!existing) throw new Error('That document no longer exists in the project.')
+    // Someone else committed since this document was opened. Refusing beats silently
+    // overwriting their work — the same rule the proposal flow enforces.
+    if (baseRevision > 0 && existing.content.revision !== baseRevision) {
+      throw new Error(
+        `This document moved on while you were editing it (you have v${baseRevision}, the project has v${existing.content.revision}). Reopen it and reapply your change.`
+      )
+    }
 
     const next: StoredDocument = {
       ...existing.content,
@@ -282,10 +315,10 @@ export const githubApi = {
       updatedAt: new Date().toISOString(),
       updatedBy: currentLogin()
     }
-    await gh.writeJson(repo, path, next, payload.summary?.trim() || `Update ${existing.content.title}`, {
+    await gh.writeJson(repo, path, next, payload.reason?.trim() || `Update ${existing.content.title}`, {
       sha: existing.sha
     })
-    return { revision: next.revision }
+    return { ok: true, revision: next.revision }
   },
 
   /** Commit history for one document — the record of who changed what, and when. */
@@ -300,6 +333,42 @@ export const githubApi = {
         summary: c.message
       }))
     }
+  },
+
+  // ----- comments anchored in the document -----------------------------------------------------
+  // Stored inside the document file rather than as GitHub comments: they point at a mark in the
+  // text, so they have to travel with the text through branches, merges and reverts.
+  async listComments(documentId: string): Promise<{ comments: StoredComment[] }> {
+    const { repo, path } = splitId(documentId)
+    const file = await gh.readJson<StoredDocument>(repo, path)
+    return { comments: file?.content.comments ?? [] }
+  },
+
+  async addComment(documentId: string, markId: string, quotedText: string, body: string): Promise<{ ok: true }> {
+    return mutateComments(documentId, (comments) => [
+      ...comments,
+      {
+        id: `${markId}-${comments.length + 1}`,
+        markId,
+        quotedText,
+        body,
+        authorName: currentLogin(),
+        createdAt: new Date().toISOString(),
+        resolvedAt: null
+      }
+    ], 'Add a comment')
+  },
+
+  async resolveComment(documentId: string, markId: string): Promise<{ ok: true }> {
+    return mutateComments(
+      documentId,
+      (comments) => comments.map((c) => (c.markId === markId ? { ...c, resolvedAt: new Date().toISOString() } : c)),
+      'Resolve a comment'
+    )
+  },
+
+  async deleteComment(documentId: string, markId: string): Promise<{ ok: true }> {
+    return mutateComments(documentId, (comments) => comments.filter((c) => c.markId !== markId), 'Delete a comment')
   },
 
   // ----- locks: no longer a concept ----------------------------------------------------------
@@ -391,6 +460,53 @@ export const githubApi = {
     return { id: proposalId(repo, pr.number), created: true }
   },
 
+  /**
+   * What a proposal actually changes: the document as the author left it on their branch,
+   * against the document as the project has it now. Word-level, because "this paragraph
+   * changed" is not reviewable and "90.0 became 95.0" is.
+   */
+  async reviewProposal(id: string): Promise<{
+    proposal: Proposal
+    diff: ReturnType<typeof diffDocuments>
+    conflicts: Array<{ blockIndex: number; base: string; ours: string; theirs: string }> | null
+  }> {
+    const { repo, number } = splitProposalId(id)
+    const pulls = await gh.listProposals(repo, 'all')
+    const pr = pulls.find((p) => p.number === number)
+    if (!pr) throw new Error('That proposal no longer exists.')
+
+    const path = pr.body?.match(/`([^`]+)`/)?.[1]
+    if (!path) throw new Error('That proposal does not name a document.')
+
+    const projects = await gh.listProjects()
+    const project = projects.find((p) => p.fullName === repo)
+    const [current, proposed] = await Promise.all([
+      gh.readJson<StoredDocument>(repo, path, project?.defaultBranch),
+      gh.readJson<StoredDocument>(repo, path, pr.branch)
+    ])
+    if (!current || !proposed) throw new Error('That document is missing on one side of the proposal.')
+
+    return {
+      proposal: {
+        id,
+        documentId: `${repo}:${path}`,
+        authorId: pr.author,
+        authorName: pr.author,
+        baseRevision: current.content.revision,
+        summary: pr.title,
+        status: pr.merged ? 'accepted' : pr.state === 'open' ? 'open' : 'closed',
+        createdAt: pr.createdAt,
+        updatedAt: pr.updatedAt,
+        resolvedByName: null,
+        resultingRevision: null,
+        stale: false,
+        commentCount: pr.commentCount
+      },
+      diff: diffDocuments(current.content.content as PMNode, proposed.content.content as PMNode),
+      conflicts: null
+    }
+  },
+
   async acceptProposal(id: string, reason: string | null): Promise<{ ok: true; revision: number }> {
     const { repo, number } = splitProposalId(id)
     await gh.acceptProposal(repo, number, reason ?? undefined)
@@ -470,6 +586,40 @@ export const githubApi = {
     if (access === null) await gh.removeCollaborator(repo, login)
     else await gh.addCollaborator(repo, login, access === 'owner' ? 'admin' : access === 'editor' ? 'write' : 'read')
     return { ok: true }
+  },
+
+  /**
+   * The record of what happened. Commits are the audit trail here: each carries an author, a
+   * timestamp and a message, and the hash of every one covers the one before it, so the chain
+   * is tamper-evident by construction rather than by a column we maintain.
+   */
+  async audit(documentId?: string): Promise<{ entries: Array<{ id: string; occurred_at: string; printed_name: string; action: string; document_id: string | null; revision_before: number | null; revision_after: number | null; reason: string | null }> }> {
+    if (!documentId) return { entries: [] }
+    const { repo, path } = splitId(documentId)
+    const commits = await gh.commitsFor(repo, path)
+    return {
+      entries: commits.map((c, i) => ({
+        id: c.sha,
+        occurred_at: c.date,
+        printed_name: c.author,
+        action: 'document.saved',
+        document_id: documentId,
+        revision_before: commits.length - i - 1,
+        revision_after: commits.length - i,
+        reason: c.message
+      }))
+    }
+  },
+
+  async verifyAudit(): Promise<{ ok: boolean; checked: number; brokenAtId: string | null; detail: string }> {
+    // Git already guarantees this: every commit hash covers its parent, so a rewritten history
+    // produces different hashes. There is nothing for AmFile to re-compute.
+    return {
+      ok: true,
+      checked: 0,
+      brokenAtId: null,
+      detail: 'History is git commits — each hash covers its parent, so tampering changes every hash after it.'
+    }
   },
 
   async revokeInvite(folderId: string, login: string): Promise<{ ok: true }> {

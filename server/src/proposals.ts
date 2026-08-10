@@ -1,7 +1,7 @@
 import { query, queryOne, transaction } from './db.js'
 import { writeAudit } from './audit.js'
 import { contentHash } from './documents.js'
-import { diffDocuments, mergeDocuments, type PMNode, type DocumentDiff } from './diff.js'
+import { diffDocuments, mergeDocuments, type PMNode, type DocumentDiff } from '../../src/shared/diff.js'
 import { accessForDocument, atLeast } from './folders.js'
 import type { SessionUser } from './auth.js'
 
