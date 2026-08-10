@@ -163,24 +163,13 @@ export function slugify(title: string): string {
   return slug || 'amfile-project'
 }
 
-/** Organisations this account belongs to, for choosing where projects live. */
-export async function listOrgs(): Promise<string[]> {
-  const orgs = await gh<Array<{ login: string }>>('/user/orgs').catch(() => [])
-  return orgs.map((o) => o.login)
-}
-
 /**
  * Create a project: a private repository, tagged, with an initial commit so it has a branch to
  * write to. A repository with no commits has no default branch, and every later write would
  * fail with a confusing 404.
- *
- * Created inside an organisation when one is configured, and that is not a preference — it is
- * the only way to add people by email. GitHub can invite an email address to an organisation;
- * it cannot invite one to a personal repository, where collaborators are addressed by username
- * and a private email cannot be resolved to a username by any API.
  */
-export async function createProject(title: string, org?: string | null): Promise<Project> {
-  const repo = await gh<RepoPayload>(org ? `/orgs/${org}/repos` : '/user/repos', {
+export async function createProject(title: string): Promise<Project> {
+  const repo = await gh<RepoPayload>('/user/repos', {
     method: 'POST',
     body: JSON.stringify({
       name: slugify(title),
@@ -560,78 +549,6 @@ export async function addCollaborator(
     { method: 'PUT', body: JSON.stringify({ permission: access }) }
   )
   return { invited: Boolean(result?.id) }
-}
-
-// ------------------------------------------------------------------ adding people by email
-//
-// Only organisations can do this. The flow is: a team per project per access level, granted
-// that access on the repository, and people invited into the team by email address. Access
-// arrives the moment they accept, and their GitHub username never has to be known or guessed.
-
-const TEAM_PERMISSION: Record<'read' | 'write' | 'admin', string> = {
-  read: 'pull',
-  write: 'push',
-  admin: 'admin'
-}
-
-/** The team that carries one access level for one project, created the first time it is needed. */
-export async function ensureProjectTeam(
-  org: string,
-  repo: string,
-  access: 'read' | 'write' | 'admin'
-): Promise<{ id: number; slug: string }> {
-  const slug = `${repo}-${access}`.toLowerCase().slice(0, 100)
-
-  let team = await gh<{ id: number; slug: string }>(`/orgs/${org}/teams/${slug}`).catch((err) => {
-    if (err instanceof GitHubError && err.status === 404) return null
-    throw err
-  })
-
-  if (!team) {
-    team = await gh<{ id: number; slug: string }>(`/orgs/${org}/teams`, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: slug,
-        description: `AmFile — ${access} access to ${repo}`,
-        privacy: 'closed'
-      })
-    })
-  }
-
-  // Idempotent: setting the same permission again is a no-op.
-  await gh(`/orgs/${org}/teams/${team.slug}/repos/${org}/${repo}`, {
-    method: 'PUT',
-    body: JSON.stringify({ permission: TEAM_PERMISSION[access] })
-  })
-
-  return team
-}
-
-/**
- * Invite an email address into the organisation, with access to one project.
- *
- * The person needs no GitHub account yet — GitHub emails them and they create one on the way
- * in. Nothing here depends on their username.
- */
-export async function inviteEmailToProject(
-  org: string,
-  repo: string,
-  email: string,
-  access: 'read' | 'write' | 'admin'
-): Promise<void> {
-  const team = await ensureProjectTeam(org, repo, access)
-  await gh(`/orgs/${org}/invitations`, {
-    method: 'POST',
-    body: JSON.stringify({ email: email.trim(), role: 'direct_member', team_ids: [team.id] })
-  })
-}
-
-/** Organisation invitations that have been emailed but not yet accepted. */
-export async function listOrgInvites(org: string): Promise<Array<{ email: string; login: string | null }>> {
-  const invites = await gh<Array<{ email: string | null; login: string | null }>>(
-    `/orgs/${org}/invitations?per_page=100`
-  ).catch(() => [])
-  return invites.map((i) => ({ email: i.email ?? i.login ?? 'unknown', login: i.login }))
 }
 
 export async function removeCollaborator(fullName: string, login: string): Promise<void> {

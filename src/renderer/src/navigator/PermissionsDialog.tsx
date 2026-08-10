@@ -184,7 +184,7 @@ export default function PermissionsDialog(): React.JSX.Element | null {
           <div className="permissions-add">
             <input
               type="email"
-              placeholder="colleague@amneal.com or GitHub username"
+              placeholder="colleague@amneal.com"
               value={addEmail}
               disabled={busy}
               onChange={(e) => setAddEmail(e.target.value)}

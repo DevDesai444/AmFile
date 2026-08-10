@@ -21,14 +21,14 @@ import { join } from 'node:path'
  * and so a colleague setting up a second machine edits one line instead of learning to export a
  * variable. Parsed by hand to avoid a dependency for six lines of work.
  */
-function readSetting(key: string): string {
-  const fromEnv = process.env[key]?.trim()
+function readClientId(): string {
+  const fromEnv = process.env.AMFILE_GITHUB_CLIENT_ID?.trim()
   if (fromEnv) return fromEnv
   for (const candidate of [join(process.cwd(), '.env'), join(app.getAppPath(), '.env')]) {
     try {
       const line = readFileSync(candidate, 'utf8')
         .split('\n')
-        .find((l) => l.trim().startsWith(`${key}=`))
+        .find((l) => l.trim().startsWith('AMFILE_GITHUB_CLIENT_ID='))
       const value = line?.split('=').slice(1).join('=').trim().replace(/^["']|["']$/g, '')
       if (value) return value
     } catch {
@@ -38,21 +38,7 @@ function readSetting(key: string): string {
   return ''
 }
 
-function readClientId(): string {
-  return readSetting('AMFILE_GITHUB_CLIENT_ID')
-}
-
 const CLIENT_ID = readClientId()
-
-/**
- * The GitHub organisation projects are created in, if any.
- *
- * This is what makes "add someone by email" possible. GitHub can invite an email address to an
- * organisation; it cannot invite one to a personal repository, where collaborators are named by
- * username and a private email cannot be resolved to one by any API. Unset, AmFile still works
- * — projects live under the account and people are added by username.
- */
-const ORG = readSetting('AMFILE_GITHUB_ORG')
 const TOKEN_FILE = (): string => join(app.getPath('userData'), 'github-token')
 
 export function isConfigured(): boolean {
@@ -100,9 +86,6 @@ interface DeviceStart {
 
 export function registerGithubAuthIpc(): void {
   ipcMain.handle('github:isConfigured', () => isConfigured())
-
-  /** The organisation projects belong to, or '' for the signed-in account. */
-  ipcMain.handle('github:org', () => ORG)
 
   /** The token from a previous session, so a restart does not mean signing in again. */
   ipcMain.handle('github:storedToken', () => loadToken())

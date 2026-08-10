@@ -85,20 +85,6 @@ function accessOf(p: gh.Project): 'viewer' | 'editor' | 'owner' {
 
 let me: gh.GitHubUser | null = null
 
-/**
- * The organisation projects live in, when one is configured.
- *
- * Read once and cached, because every invite and every project creation consults it. An empty
- * string means projects live under the signed-in account, where people can only be added by
- * GitHub username — GitHub provides no way to invite an email address to a personal repository.
- */
-let orgCache: string | null = null
-
-async function currentOrg(): Promise<string> {
-  if (orgCache === null) orgCache = (await window.amfile?.github?.org().catch(() => '')) ?? ''
-  return orgCache
-}
-
 export function currentLogin(): string {
   return me?.login ?? 'unknown'
 }
@@ -245,7 +231,7 @@ export const githubApi = {
 
   async createFolder(name: string, parentId: string | null): Promise<{ id: string }> {
     if (!parentId) {
-      const project = await gh.createProject(name, (await currentOrg()) || null)
+      const project = await gh.createProject(name)
       return { id: project.fullName }
     }
     const { repo, path } = splitId(parentId)
@@ -607,17 +593,6 @@ export const githubApi = {
 
   async folderInvites(folderId: string): Promise<{ invites: PendingInvite[] }> {
     const { repo } = splitId(folderId)
-    const [owner] = repo.split('/')
-    const org = await currentOrg()
-
-    // In an organisation the pending invitations are the organisation's, addressed to emails.
-    if (org && owner === org) {
-      const pending = await gh.listOrgInvites(org)
-      return {
-        invites: pending.map((i) => ({ email: i.email, access: 'editor' as const, invitedAt: '' }))
-      }
-    }
-
     const invites = await gh.listPendingInvites(repo)
     return {
       invites: invites.map((i) => ({
@@ -636,26 +611,10 @@ export const githubApi = {
    */
   async inviteToFolder(folderId: string, who: string, access: 'viewer' | 'editor' | 'owner'): Promise<{ ok: true; immediate: boolean }> {
     const { repo } = splitId(folderId)
-    const permission = access === 'owner' ? 'admin' : access === 'editor' ? 'write' : 'read'
-    const typed = who.trim()
-    const [owner, name] = repo.split('/')
-    const org = await currentOrg()
-
-    // An email address, into a project owned by the organisation: GitHub invites the address
-    // itself. No username to know, no naming convention, and the person does not need a GitHub
-    // account yet — they get an email and create one on the way in.
-    if (typed.includes('@')) {
-      if (!org || owner !== org) {
-        throw new Error(
-          `Adding by email needs the project to live in a GitHub organisation. This one belongs to ${owner}. Add them by GitHub username instead, or set AMFILE_GITHUB_ORG and create the project there.`
-        )
-      }
-      await gh.inviteEmailToProject(org, name, typed, permission)
-      return { ok: true, immediate: false }
-    }
-
-    const resolved = await gh.resolvePerson(typed)
+    const resolved = await gh.resolvePerson(who)
     if (!resolved.ok) throw new Error(resolved.reason)
+
+    const permission = access === 'owner' ? 'admin' : access === 'editor' ? 'write' : 'read'
     const { invited } = await gh.addCollaborator(repo, resolved.user.login, permission)
     return { ok: true, immediate: !invited }
   },

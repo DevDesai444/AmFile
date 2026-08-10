@@ -9,7 +9,6 @@ const amfileApi = {
   openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('shell:openExternal', url),
   github: {
     isConfigured: (): Promise<boolean> => ipcRenderer.invoke('github:isConfigured'),
-    org: (): Promise<string> => ipcRenderer.invoke('github:org'),
     storedToken: (): Promise<string | null> => ipcRenderer.invoke('github:storedToken'),
     signOut: (): Promise<boolean> => ipcRenderer.invoke('github:signOut'),
     startDeviceFlow: (): Promise<{
