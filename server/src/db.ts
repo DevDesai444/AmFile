@@ -36,7 +36,26 @@ export const pool = new pg.Pool({
   ssl: { rejectUnauthorized: false },
   password: databricksToken,
   max: 8,
-  idleTimeoutMillis: 30_000
+  // Lakebase is across the network, so idle sockets get reaped. Recycle them before that
+  // happens and keep the survivors warm.
+  idleTimeoutMillis: 10_000,
+  keepAlive: true,
+  connectionTimeoutMillis: 10_000
+})
+
+/**
+ * A dropped idle connection makes `pg` emit 'error' on the pool. With no listener attached
+ * that is an unhandled 'error' event, which terminates the process — a brief network blip to
+ * Lakebase was enough to kill the whole server. Log it and let the pool replace the client.
+ */
+pool.on('error', (err) => {
+  console.error('[db] idle client error (connection will be replaced):', err.message)
+})
+
+// Same reasoning one level up: a rejected query somewhere should not be able to take the
+// server down with it. Fastify already replies 500 per-request; this is the backstop.
+process.on('unhandledRejection', (reason) => {
+  console.error('[server] unhandled rejection:', reason)
 })
 
 export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
