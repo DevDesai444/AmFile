@@ -7,6 +7,28 @@ import type { FsTreeNode } from '../main/services/fs/tree'
 const amfileApi = {
   platform: process.platform,
   openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('shell:openExternal', url),
+  github: {
+    isConfigured: (): Promise<boolean> => ipcRenderer.invoke('github:isConfigured'),
+    storedToken: (): Promise<string | null> => ipcRenderer.invoke('github:storedToken'),
+    signOut: (): Promise<boolean> => ipcRenderer.invoke('github:signOut'),
+    startDeviceFlow: (): Promise<{
+      deviceCode: string
+      userCode: string
+      verificationUri: string
+      interval: number
+      expiresIn: number
+    }> => ipcRenderer.invoke('github:startDeviceFlow'),
+    pollDeviceFlow: (
+      deviceCode: string
+    ): Promise<
+      | { status: 'pending' }
+      | { status: 'slow_down'; interval: number }
+      | { status: 'expired' }
+      | { status: 'denied' }
+      | { status: 'error'; error: string }
+      | { status: 'ok'; token: string }
+    > => ipcRenderer.invoke('github:pollDeviceFlow', deviceCode)
+  },
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximizeToggle: () => ipcRenderer.invoke('window:maximizeToggle'),

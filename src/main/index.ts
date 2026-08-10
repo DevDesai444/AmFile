@@ -7,6 +7,8 @@ import { registerPrintHandlers } from './ipc/print'
 import { registerComplianceHandlers } from './ipc/compliance'
 import { registerAiHandlers } from './ipc/ai'
 import { registerWindowHandlers, registerWindowIpc } from './ipc/window'
+import { applyCsp } from './ipc/settings'
+import { registerGithubAuthIpc } from './ipc/github-auth'
 
 export function createMainWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
@@ -33,6 +35,17 @@ export function createMainWindow(): BrowserWindow {
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
+
+  // Renderer errors otherwise vanish into a DevTools window nobody has open, which is how a
+  // blank screen ends up with no explanation anywhere.
+  if (is.dev) {
+    mainWindow.webContents.on('console-message', (_e, _level, message, line, sourceId) => {
+      console.log(`[renderer] ${message}${sourceId ? ` (${sourceId}:${line})` : ''}`)
+    })
+    mainWindow.webContents.on('did-fail-load', (_e, code, desc, url) => {
+      console.error(`[renderer] failed to load ${url}: ${desc} (${code})`)
+    })
+  }
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -80,6 +93,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  applyCsp()
+  registerGithubAuthIpc()
   registerWindowIpc(createMainWindow)
   registerFsHandlers()
   registerDocxHandlers()

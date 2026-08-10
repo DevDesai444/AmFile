@@ -1911,6 +1911,22 @@
   font-size: 11px;
   line-height: 1.4;
 }
+.login-server {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  background: none;
+  border: 1px solid var(--dv);
+  color: var(--mut2);
+  font-size: 10px;
+  padding: 4px 10px;
+}
+.login-server:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 .login-github {
   display: flex;
   align-items: center;
