@@ -8,18 +8,41 @@ Dark theme, Electron + React + TypeScript, ships for macOS and Windows.
 
 ## Status
 
-The editor, document tree, and file I/O are real and functional. The AI research chat and
-compliance-check panels are wired to **stub providers** — the real compliance backend is being
-built separately (`deficiency-chatbot` repo) and isn't ready yet; swapping it in later is a
-provider swap (`src/main/services/compliance/provider.ts`), not a UI rewrite. Same for AI chat
-(`src/main/services/ai/provider.ts`) once a model/provider is chosen.
+**Working:** multi-user editing with email/password accounts and roles, document check-out
+locking, append-only revision history, live updates between users, a hash-chained audit trail
+with in-app integrity verification, server-persisted comments, and a Word-class editor
+(formatting, styles, tables, images, links, headers/footers, page setup, find & replace,
+track changes with accept/reject, print to PDF, native `.docx` import/export).
+
+**Stubbed:** the AI research chat and the compliance-check panels. Both say so in the UI. The
+real compliance engine is being built separately (`deficiency-chatbot`); swapping it in is a
+provider swap (`src/main/services/compliance/provider.ts`), not a UI rewrite.
+
+**Not built:** e-signature UI (schema exists), mail merge, citations/bibliography, Design
+theme presets, compare/combine. Any unbuilt ribbon command says so when clicked rather than
+doing nothing.
+
+**AmFile is not "Part 11 compliant", and no software can be.** Every operative clause of the
+rule binds *persons who use* a system, not suppliers, and FDA does not certify software. This
+implements the technical controls and produces the evidence needed to validate. Validation,
+SOPs, training records and compliance status remain Amneal QA's to own.
 
 ## Getting started
 
+See **[DEMO.md](DEMO.md)** for the full runbook. Short version — two terminals:
+
 ```bash
-npm install
-npm run dev        # launches the app with hot reload
+cd server && npm start   # API + database
 ```
+
+```bash
+npm run dev              # the desktop app
+```
+
+Sign in with `riya.patel@amneal.com` / `AmFile2026!` (see DEMO.md for all four accounts).
+
+The server needs the Databricks CLI signed in, because the database is Lakebase and it
+authenticates with a Databricks token. Run `databricks auth login` if the server won't start.
 
 ```bash
 npm run typecheck  # tsc --noEmit on both main and renderer
@@ -34,6 +57,10 @@ verification hasn't been done as part of this build.
 
 ## Architecture
 
+- `server/` — Fastify API on Lakebase Postgres: auth, documents, revisions, locks, comments,
+  audit trail. See [server/README.md](server/README.md) for the schema and the append-only
+  guarantees.
+- `src/renderer/src/api/` — HTTP/WebSocket client the renderer uses to reach the server.
 - `src/main/` — Electron main process: window/menu lifecycle, IPC handlers (`ipc/`), and
   services (`services/`) for docx import/export, the filesystem tree, and the AI/compliance
   providers.
