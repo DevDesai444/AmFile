@@ -677,6 +677,23 @@
   color: var(--mut2);
 }
 
+/* ---------- Stub disclaimer banner ---------- */
+.stub-banner {
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--med) 45%, transparent);
+  border-left-width: 2px;
+  background: color-mix(in srgb, var(--med) 10%, transparent);
+  color: var(--mut);
+  font-size: 10.5px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+}
+.stub-banner strong {
+  color: var(--med);
+  font-weight: 600;
+}
+
 /* ---------- Compliance panel ---------- */
 .compliance-panel {
   padding: 12px;

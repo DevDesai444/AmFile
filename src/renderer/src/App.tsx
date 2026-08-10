@@ -14,16 +14,25 @@ import SettingsView from './welcome/SettingsView'
 import EditorCanvas from './editor/EditorCanvas'
 import FolderRun from './dock/FolderRun'
 import { useUiStore } from './store/uiStore'
+import { useDocumentStore } from './store/documentStore'
 import { useComplianceStore } from './store/complianceStore'
 
 export default function App(): React.JSX.Element {
   const view = useUiStore((s) => s.view)
+  const dirty = useDocumentStore((s) => s.dirty)
   const applyFolderProgress = useComplianceStore((s) => s.applyFolderProgress)
 
   useEffect(() => {
     if (!window.amfile) return
     return window.amfile.compliance.onFolderProgress((_folderId, update) => applyFolderProgress(update))
   }, [applyFolderProgress])
+
+  // Keep the main process's copy of the unsaved flag current — it guards window close, and
+  // a close handler cannot ask the renderer after the fact.
+  useEffect(() => {
+    if (!window.amfile) return
+    void window.amfile.window.setDirty(dirty)
+  }, [dirty])
 
   return (
     <div className="app-shell">

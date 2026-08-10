@@ -15,6 +15,9 @@ export async function runRibbonAction(act: string): Promise<void> {
       return
 
     case 'file.new':
+      if (doc.dirty && !window.confirm('You have unsaved changes. Discard them and start a new document?')) {
+        return
+      }
       doc.newDocument('Untitled document.docx')
       ui.setView('editor')
       return

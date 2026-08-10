@@ -34,7 +34,17 @@ export function useDocumentIO(editor: Editor | null): {
       header: headerText ? { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: headerText }] }] } : null,
       footer: footerText ? { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: footerText }] }] } : null
     }
-    await window.amfile.docx.write(targetPath, model as never)
+    try {
+      await window.amfile.docx.write(targetPath, model as never)
+    } catch (err) {
+      // Never swallow this. A failed write previously left dirty=true and surfaced only as
+      // an unhandled rejection, so the user believed the document was saved when it wasn't.
+      console.error('[save] write failed', err)
+      window.alert(
+        `Could not save "${fileName ?? 'document'}".\n\n${err instanceof Error ? err.message : String(err)}\n\nYour changes are still open and unsaved.`
+      )
+      return
+    }
     const name = targetPath.split(/[\\/]/).pop() ?? fileName ?? 'Untitled document.docx'
     openDocument(targetPath, name, pageSetup)
     markSaved()
@@ -43,13 +53,29 @@ export function useDocumentIO(editor: Editor | null): {
   const openFromPath = useCallback(
     async (path: string) => {
       if (!editor || !window.amfile) return
-      const result = (await window.amfile.docx.read(path)) as DocxReadResult
+      let result: DocxReadResult
+      try {
+        result = (await window.amfile.docx.read(path)) as DocxReadResult
+      } catch (err) {
+        console.error('[open] read failed', err)
+        window.alert(`Could not open that document.\n\n${err instanceof Error ? err.message : String(err)}`)
+        return
+      }
+
+      // Surface data loss BEFORE replacing the editor contents, and let the user back out.
+      // These warnings cover pre-existing tracked changes and comments, which AmFile cannot
+      // preserve on import — silently discarding a reviewer's revision history is not
+      // acceptable on a regulatory document.
+      if (result.warnings.length > 0) {
+        const proceed = window.confirm(
+          `${result.warnings.join('\n\n')}\n\nOpen anyway? Choose Cancel to leave the file untouched and review it in Word first.`
+        )
+        if (!proceed) return
+      }
+
       editor.commands.setContent(result.model.content)
       const name = path.split(/[\\/]/).pop() ?? result.model.title
       openDocument(path, name, result.model.pageSetup)
-      if (result.warnings.length > 0) {
-        console.warn('[docx import]', result.warnings.join('\n'))
-      }
     },
     [editor, openDocument]
   )

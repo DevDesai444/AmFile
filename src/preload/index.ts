@@ -11,6 +11,7 @@ const amfileApi = {
     maximizeToggle: () => ipcRenderer.invoke('window:maximizeToggle'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:isMaximized'),
+    setDirty: (dirty: boolean): Promise<void> => ipcRenderer.invoke('window:setDirty', dirty),
     onMaximizeChanged: (cb: (isMaximized: boolean) => void): (() => void) => {
       const listener = (_: unknown, v: boolean): void => cb(v)
       ipcRenderer.on('window:maximizeChanged', listener)

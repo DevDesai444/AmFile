@@ -62,6 +62,10 @@ export default function ProjectTree(): React.JSX.Element {
                 toggleFolder(node.path)
                 return
               }
+              // Opening replaces the editor contents, so unsaved work would be lost silently.
+              if (useDocumentStore.getState().dirty && !window.confirm('You have unsaved changes. Discard them and open this document?')) {
+                return
+              }
               setView('editor')
               if (node.type === 'docx') requestOpen(node.path)
             }}

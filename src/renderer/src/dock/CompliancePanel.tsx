@@ -34,6 +34,13 @@ export default function CompliancePanel(): React.JSX.Element {
 
   return (
     <div className="compliance-panel">
+      {/* These findings come from StubComplianceProvider, not from any real analysis. The rule
+          IDs and severities look authoritative, so the panel must say so in-place — a label
+          buried in Settings is not enough to stop someone acting on invented findings. */}
+      <div className="stub-banner">
+        <strong>Example data.</strong> No compliance engine is connected — these findings are
+        placeholders and must not be used to assess a document.
+      </div>
       <div className="compliance-summary">
         <span className="compliance-summary-count">{total}</span>
         <span>findings in this document</span>

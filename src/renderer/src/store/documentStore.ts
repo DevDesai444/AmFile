@@ -32,6 +32,10 @@ interface DocumentState {
   pendingOpenPath: string | null
   headerText: string
   footerText: string
+  /** Bumped whenever a blank document is started. EditorCanvas watches it and clears the
+   *  editor — without this, `File → New` keeps the previous document's body, because
+   *  setContent is otherwise only called on the open-from-disk path. */
+  resetToken: number
 
   openDocument: (filePath: string, fileName: string, pageSetup?: PageSetup) => void
   newDocument: (fileName: string) => void
@@ -69,10 +73,23 @@ export const useDocumentStore = create<DocumentState>((set) => ({
   pendingOpenPath: null,
   headerText: '',
   footerText: '',
+  resetToken: 0,
 
   openDocument: (filePath, fileName, pageSetup) =>
     set({ filePath, fileName, dirty: false, savedAt: formatSavedTime(new Date()), pageSetup: pageSetup ?? DEFAULT_PAGE_SETUP }),
-  newDocument: (fileName) => set({ filePath: null, fileName, dirty: false, savedAt: null, pageSetup: DEFAULT_PAGE_SETUP }),
+  newDocument: (fileName) =>
+    set((s) => ({
+      filePath: null,
+      fileName,
+      dirty: false,
+      savedAt: null,
+      pageSetup: DEFAULT_PAGE_SETUP,
+      // Header/footer are per-document; leaving them set would write the previous
+      // document's running head into the new file.
+      headerText: '',
+      footerText: '',
+      resetToken: s.resetToken + 1
+    })),
   markDirty: () => set({ dirty: true }),
   markSaved: () => set({ dirty: false, savedAt: formatSavedTime(new Date()) }),
   setPageSetup: (pageSetup) => set({ pageSetup, dirty: true }),

@@ -38,6 +38,9 @@ export default function AiChatPanel(): React.JSX.Element {
 
   return (
     <div className="chat-panel">
+      <div className="stub-banner">
+        <strong>Not connected.</strong> No model is wired up — replies are canned placeholders.
+      </div>
       <div className="chat-messages" ref={listRef}>
         {messages.map((m) => (
           <div key={m.id} className={`chat-message chat-message--${m.role}`}>

@@ -46,6 +46,7 @@ export default function EditorCanvas(): React.JSX.Element {
   const clearPendingOpen = useDocumentStore((s) => s.clearPendingOpen)
   const headerText = useDocumentStore((s) => s.headerText)
   const footerText = useDocumentStore((s) => s.footerText)
+  const resetToken = useDocumentStore((s) => s.resetToken)
   const checkDocument = useComplianceStore((s) => s.checkDocument)
 
   const editor = useEditor({
@@ -130,6 +131,14 @@ export default function EditorCanvas(): React.JSX.Element {
       void openFromPath(pendingOpenPath).then(() => clearPendingOpen())
     }
   }, [pendingOpenPath, editor, openFromPath, clearPendingOpen])
+
+  // Blank the editor when a new document is started. Comments are keyed to marks in the
+  // old document, so they have to go with it.
+  useEffect(() => {
+    if (!editor || resetToken === 0) return
+    editor.commands.setContent('<p></p>')
+    useCommentStore.setState({ comments: [] })
+  }, [editor, resetToken])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent): void => {
