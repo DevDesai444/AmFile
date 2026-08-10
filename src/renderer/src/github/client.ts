@@ -379,6 +379,29 @@ export async function closeProposal(fullName: string, number: number): Promise<v
   await gh(`/repos/${fullName}/pulls/${number}`, { method: 'PATCH', body: JSON.stringify({ state: 'closed' }) })
 }
 
+/** Commit history for one file — who changed a document, and when. */
+export async function commitsFor(
+  fullName: string,
+  path: string
+): Promise<Array<{ sha: string; author: string; date: string; message: string }>> {
+  const commits = await gh<
+    Array<{
+      sha: string
+      commit: { message: string; author: { name: string; date: string } | null }
+      author: { login: string } | null
+    }>
+  >(`/repos/${fullName}/commits?path=${encodeURIComponent(path)}&per_page=100`).catch((err) => {
+    if (err instanceof GitHubError && err.status === 404) return []
+    throw err
+  })
+  return commits.map((c) => ({
+    sha: c.sha,
+    author: c.author?.login ?? c.commit.author?.name ?? 'unknown',
+    date: c.commit.author?.date ?? '',
+    message: c.commit.message.split('\n')[0]
+  }))
+}
+
 // --------------------------------------------------------------------------------- discussion
 
 export interface Comment {
