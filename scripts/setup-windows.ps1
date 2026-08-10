@@ -1,0 +1,118 @@
+<#
+  AmFile — one-shot setup for a Windows machine.
+
+  Installs what is missing, clones AmFile to the Desktop, configures it, and starts it.
+  Safe to run again: an existing clone is updated rather than replaced, and anything already
+  installed is left alone.
+
+  Run it with:
+
+      irm https://raw.githubusercontent.com/DevDesai444/AmFile/main/scripts/setup-windows.ps1 | iex
+
+  Overrides, if ever needed, are environment variables rather than parameters — a param block
+  behaves inconsistently when a script is piped into iex, and this script is meant to be run
+  exactly that way:
+
+      $env:AMFILE_GITHUB_CLIENT_ID = 'Ov23...'
+      $env:AMFILE_TARGET = 'C:\dev\AmFile'
+#>
+
+# Native tools such as git write progress to stderr. Under 'Stop' some PowerShell hosts treat
+# that as a terminating error, which would abort a perfectly good clone, so ordinary output is
+# not allowed to be fatal — failures are checked explicitly through $LASTEXITCODE instead.
+$ErrorActionPreference = 'Continue'
+
+# Public by design: the device flow has no client secret, and any client id ships inside the
+# desktop app anyway, so this is not something that can be kept private.
+$ClientId = if ($env:AMFILE_GITHUB_CLIENT_ID) { $env:AMFILE_GITHUB_CLIENT_ID } else { 'Ov23liGwgNrBrhj8UZP8' }
+$RepoUrl  = if ($env:AMFILE_REPO_URL) { $env:AMFILE_REPO_URL } else { 'https://github.com/DevDesai444/AmFile.git' }
+$Target   = if ($env:AMFILE_TARGET) { $env:AMFILE_TARGET } else { Join-Path ([Environment]::GetFolderPath('Desktop')) 'AmFile' }
+
+function Say  ($m) { Write-Host "  $m" -ForegroundColor Cyan }
+function Good ($m) { Write-Host "  $m" -ForegroundColor Green }
+function Warn ($m) { Write-Host "  $m" -ForegroundColor Yellow }
+function Die  ($m) { Write-Host "  $m" -ForegroundColor Red; exit 1 }
+
+Write-Host ""
+Write-Host "  AmFile setup" -ForegroundColor White
+Write-Host "  ------------" -ForegroundColor DarkGray
+Write-Host ""
+
+function Have ($name) { [bool](Get-Command $name -ErrorAction SilentlyContinue) }
+
+# PATH is only refreshed for new processes, so a tool installed a moment ago stays invisible to
+# this one until the process environment is re-read.
+function Reload-Path {
+  $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+  $user    = [Environment]::GetEnvironmentVariable('Path', 'User')
+  $env:Path = "$machine;$user"
+}
+
+function Install-Package ($id, $label) {
+  if (-not (Have 'winget')) {
+    Die "$label is missing, and winget is not available to install it. Install $label by hand, then run this again."
+  }
+  Say "Installing $label. This can take a couple of minutes..."
+  winget install --id $id --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+  Reload-Path
+}
+
+# ---------------------------------------------------------------------------- prerequisites
+if (Have 'git') { Good "Git is already installed." } else { Install-Package 'Git.Git' 'Git' }
+if (-not (Have 'git')) { Die "Git is installed but not on PATH yet. Close this window, open a new PowerShell, and run this again." }
+
+$nodeOk = $false
+if (Have 'node') {
+  $major = ((node -v) -replace '^v', '').Split('.')[0] -as [int]
+  if ($major -ge 20) { Good "Node $(node -v) is already installed."; $nodeOk = $true }
+  else { Warn "Node $(node -v) is too old; AmFile needs 20 or newer." }
+}
+if (-not $nodeOk) { Install-Package 'OpenJS.NodeJS.LTS' 'Node.js' }
+if (-not (Have 'node')) { Die "Node is installed but not on PATH yet. Close this window, open a new PowerShell, and run this again." }
+if (-not (Have 'npm'))  { Die "npm is missing even though Node is present. Reinstall Node.js." }
+
+# ----------------------------------------------------------------------------------- source
+if (Test-Path (Join-Path $Target '.git')) {
+  Say "Updating the existing copy at $Target"
+  $dirty = git -C $Target status --porcelain 2>$null
+  if ([string]::IsNullOrWhiteSpace(($dirty | Out-String))) {
+    git -C $Target pull --ff-only 2>&1 | Out-Null
+  } else {
+    # Local edits belong to whoever made them; overwriting them is not this script's business.
+    Warn "There are local changes here, so the update was skipped and they were left alone."
+  }
+} else {
+  Say "Cloning AmFile to $Target"
+  git clone --depth 1 $RepoUrl $Target 2>&1 | Out-Null
+  if ($LASTEXITCODE -ne 0) { Die "Could not clone $RepoUrl. Check the network and that the address is right." }
+}
+if (-not (Test-Path (Join-Path $Target 'package.json'))) { Die "$Target does not look like the AmFile source." }
+Good "Source is ready."
+
+Set-Location $Target
+
+# ------------------------------------------------------------------------------------ config
+# .env is gitignored, so it never arrives with a clone and has to be written here.
+$envPath = Join-Path $Target '.env'
+$configured = (Test-Path $envPath) -and ((Get-Content $envPath -Raw -ErrorAction SilentlyContinue) -match 'AMFILE_GITHUB_CLIENT_ID=\S')
+if ($configured) {
+  Good "A client id is already configured; leaving it alone."
+} else {
+  # Written without a byte-order mark: the id is read by a small hand-rolled parser, and a BOM
+  # would end up inside the value itself.
+  [IO.File]::WriteAllText($envPath, "AMFILE_GITHUB_CLIENT_ID=$ClientId`n", (New-Object Text.UTF8Encoding $false))
+  Good "Wrote .env"
+}
+
+# --------------------------------------------------------------------------------- install
+Say "Installing dependencies. The first run takes a few minutes..."
+npm install --no-fund --no-audit
+if ($LASTEXITCODE -ne 0) { Die "npm install failed. The reason is above." }
+Good "Dependencies installed."
+
+Write-Host ""
+Good "Starting AmFile. Click 'Sign in with GitHub' and approve the code it shows you."
+Write-Host "  Next time:  cd `"$Target`"  then  npm run dev" -ForegroundColor DarkGray
+Write-Host ""
+
+npm run dev
