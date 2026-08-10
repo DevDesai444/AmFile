@@ -48,16 +48,25 @@ verification hasn't been done as part of this build.
 AmFile reads and writes real `.docx` files (via `mammoth` for import, `docx` for export), not a
 custom format — but round-tripping an arbitrary Word document isn't lossless in both directions.
 
-**Preserved on import:** headings, lists (including multilevel), tables (text + basic character
-formatting), images, footnotes/endnotes, hyperlinks, bold/italic/underline/strike/sub/superscript,
-and — via a custom OOXML reader — page setup. **Lost on import:** any *pre-existing* tracked
-changes or comments in the source file (the app blocks import with a warning and lets you accept
-them into plain text or open a copy in Word first, rather than silently discarding a reviewer's
-revisions), table borders/shading, and custom XML parts.
+**Preserved on export** (covered by `npm test`, which asserts against the generated OOXML):
+headings, paragraphs, lists, tables, images, hyperlinks, bold/italic/underline/strike/sub/superscript,
+font family and size, text colour, highlighting, alignment, indentation, line spacing, explicit page
+breaks, the CTD Section / Reference / Table Caption paragraph styles, page setup, and headers/footers.
+Track changes export as real OOXML `w:ins`/`w:del` with author and timestamp, reviewable in Word.
 
-**AmFile-authored content round-trips well in both directions**, including its own track changes
-and comments — accepted/rejected changes made in AmFile export as real OOXML `w:ins`/`w:del` and
-comment parts, openable and reviewable in actual Microsoft Word.
+**Lost on import:** any *pre-existing* tracked changes or comments in the source file, table
+borders/shading, and custom XML parts. Import is handled by `mammoth`, which resolves tracked
+changes to plain text and drops comments. `importDocx` detects both and returns warnings.
+
+**Known gap:** those import warnings are currently only logged to the console, not shown in the UI —
+so the data-loss notice is invisible to the user. Do not rely on the app to stop you from opening a
+document whose revision history matters; check it in Word first.
+
+**Comments do not persist at all** — they live in memory for the session and are lost on reopen.
+
+Earlier versions of this README overstated export fidelity: font, colour, highlight, indent, line
+spacing, page breaks and the CTD paragraph styles were in fact silently dropped. That is fixed and
+now regression-tested, but treat any fidelity claim here as true only where a test asserts it.
 
 ## Pagination
 
