@@ -30,6 +30,14 @@ interface DocumentState {
   trackChangesEnabled: boolean
   zoom: number
   pendingOpenPath: string | null
+  /** Server document requested from the tree; EditorCanvas loads it. */
+  pendingOpenServerDocId: string | null
+  /** Server-side identity. Null for a purely local, unsaved document. */
+  documentId: string | null
+  /** Revision this editor was loaded from — the base for the next save. */
+  revision: number
+  lockedByMe: boolean
+  lockedByOther: string | null
   headerText: string
   footerText: string
   /** Bumped whenever a blank document is started. EditorCanvas watches it and clears the
@@ -46,6 +54,11 @@ interface DocumentState {
   setZoom: (zoom: number) => void
   requestOpen: (path: string) => void
   clearPendingOpen: () => void
+  requestOpenServerDoc: (id: string) => void
+  clearPendingServerOpen: () => void
+  openServerDocument: (args: { documentId: string; revision: number; title: string }) => void
+  setRevision: (revision: number) => void
+  setLockState: (lockedByMe: boolean, lockedByOther: string | null) => void
   setHeaderText: (text: string) => void
   setFooterText: (text: string) => void
   cycleOrientation: () => void
@@ -71,6 +84,11 @@ export const useDocumentStore = create<DocumentState>((set) => ({
   trackChangesEnabled: false,
   zoom: 100,
   pendingOpenPath: null,
+  pendingOpenServerDocId: null,
+  documentId: null,
+  revision: 0,
+  lockedByMe: false,
+  lockedByOther: null,
   headerText: '',
   footerText: '',
   resetToken: 0,
@@ -97,6 +115,21 @@ export const useDocumentStore = create<DocumentState>((set) => ({
   setZoom: (zoom) => set({ zoom }),
   requestOpen: (path) => set({ pendingOpenPath: path }),
   clearPendingOpen: () => set({ pendingOpenPath: null }),
+  requestOpenServerDoc: (id) => set({ pendingOpenServerDocId: id }),
+  clearPendingServerOpen: () => set({ pendingOpenServerDocId: null }),
+  openServerDocument: ({ documentId, revision, title }) =>
+    set({
+      documentId,
+      revision,
+      fileName: title,
+      filePath: null,
+      dirty: false,
+      savedAt: formatSavedTime(new Date()),
+      lockedByMe: false,
+      lockedByOther: null
+    }),
+  setRevision: (revision) => set({ revision }),
+  setLockState: (lockedByMe, lockedByOther) => set({ lockedByMe, lockedByOther }),
   setHeaderText: (headerText) => set({ headerText, dirty: true }),
   setFooterText: (footerText) => set({ footerText, dirty: true }),
   cycleOrientation: () =>

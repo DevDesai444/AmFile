@@ -1,0 +1,207 @@
+/**
+ * Thin HTTP/WebSocket client for the AmFile server. Lives in the renderer rather than the
+ * main process because it needs no Node APIs — and keeping it here means the login screen,
+ * document list and editor all share one session token without extra IPC hops.
+ */
+
+const BASE = import.meta.env.VITE_AMFILE_SERVER ?? 'http://127.0.0.1:8787'
+const TOKEN_KEY = 'amfile.session'
+
+export interface ApiUser {
+  id: string
+  email: string
+  displayName: string
+  roles: Array<'author' | 'reviewer' | 'approver' | 'admin'>
+  mustChangePassword: boolean
+}
+
+export interface ApiDocument {
+  id: string
+  path: string
+  title: string
+  currentRevision: number
+  updatedAt: string | null
+  lockedBy: { userId: string; displayName: string; expiresAt: string } | null
+}
+
+export interface ApiRevision {
+  documentId: string
+  revision: number
+  content: unknown
+  pageSetup: unknown
+  header: unknown
+  footer: unknown
+  contentHash: string
+  authorName: string
+  createdAt: string
+}
+
+export interface AuditEntry {
+  id: string
+  occurred_at: string
+  printed_name: string
+  action: string
+  document_id: string | null
+  revision_before: number | null
+  revision_after: number | null
+  reason: string | null
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body: unknown
+  ) {
+    super(message)
+  }
+}
+
+let token: string | null = localStorage.getItem(TOKEN_KEY)
+
+export function getToken(): string | null {
+  return token
+}
+
+export function setToken(next: string | null): void {
+  token = next
+  if (next) localStorage.setItem(TOKEN_KEY, next)
+  else localStorage.removeItem(TOKEN_KEY)
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: {
+        // Only declare a JSON body when there actually is one — Fastify rejects an empty
+        // body sent with application/json as a 400, which made lock/heartbeat calls look
+        // like permission failures.
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init.headers ?? {})
+      }
+    })
+  } catch {
+    // Distinguish "server is down" from "server said no" — the UI shows very different
+    // things for each, and conflating them makes an outage look like a permissions problem.
+    throw new ApiError('Cannot reach the AmFile server. Is it running?', 0, null)
+  }
+
+  const text = await res.text()
+  const body = text ? (JSON.parse(text) as unknown) : null
+  if (!res.ok) {
+    const message =
+      (body as { error?: string; lockedBy?: string } | null)?.error ??
+      (body as { code?: string } | null)?.code ??
+      `Request failed (${res.status})`
+    throw new ApiError(message, res.status, body)
+  }
+  return body as T
+}
+
+export const api = {
+  async login(email: string, password: string): Promise<{ user: ApiUser; passwordExpired: boolean }> {
+    const res = await request<{ token: string; user: ApiUser; passwordExpired: boolean }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    })
+    setToken(res.token)
+    return { user: res.user, passwordExpired: res.passwordExpired }
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await request('/api/auth/logout', { method: 'POST' })
+    } finally {
+      setToken(null)
+    }
+  },
+
+  me: () => request<{ user: ApiUser }>('/api/auth/me'),
+
+  changePassword: (current: string, next: string) =>
+    request<{ ok: true }>('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current, next })
+    }),
+
+  listDocuments: () => request<{ documents: ApiDocument[] }>('/api/documents'),
+
+  createDocument: (path: string, title: string) =>
+    request<{ document: ApiDocument }>('/api/documents', {
+      method: 'POST',
+      body: JSON.stringify({ path, title })
+    }),
+
+  getDocument: (id: string, revision?: number) =>
+    request<{ document: ApiRevision }>(`/api/documents/${id}${revision ? `?revision=${revision}` : ''}`),
+
+  history: (id: string) =>
+    request<{ history: Array<{ revision: number; authorName: string; createdAt: string; contentHash: string }> }>(
+      `/api/documents/${id}/history`
+    ),
+
+  save: (
+    id: string,
+    baseRevision: number,
+    payload: { content: unknown; pageSetup: unknown; header: unknown; footer: unknown; reason?: string }
+  ) =>
+    request<{ ok: true; revision: number }>(`/api/documents/${id}/save`, {
+      method: 'POST',
+      body: JSON.stringify({ baseRevision, ...payload })
+    }),
+
+  lock: (id: string) => request<{ ok: true; expiresAt: string }>(`/api/documents/${id}/lock`, { method: 'POST' }),
+
+  unlock: (id: string, force = false) =>
+    request<{ ok: true }>(`/api/documents/${id}/unlock`, { method: 'POST', body: JSON.stringify({ force }) }),
+
+  heartbeat: (id: string) => request<{ held: boolean }>(`/api/documents/${id}/heartbeat`, { method: 'POST' }),
+
+  audit: (documentId?: string) =>
+    request<{ entries: AuditEntry[] }>(`/api/audit${documentId ? `?documentId=${documentId}` : ''}`),
+
+  verifyAudit: () =>
+    request<{ ok: boolean; checked: number; brokenAtId: number | null; detail: string }>('/api/audit/verify')
+}
+
+export type ServerEvent =
+  | { event: 'document:updated'; payload: { documentId: string; revision: number; savedBy: string; savedByUserId: string; savedAt: string } }
+  | { event: 'lock:changed'; payload: { documentId: string; lockedBy: string | null; lockedByUserId: string | null } }
+  | { event: 'presence:changed'; payload: { userId: string; displayName: string; online: boolean } }
+  | { event: 'documents:changed'; payload: { reason: string; documentId: string } }
+
+/** Auto-reconnecting event stream. Returns a disposer. */
+export function connectEvents(onEvent: (e: ServerEvent) => void, onStatus: (online: boolean) => void): () => void {
+  let socket: WebSocket | null = null
+  let closed = false
+  let retry: ReturnType<typeof setTimeout> | null = null
+
+  const open = (): void => {
+    if (closed || !token) return
+    const url = `${BASE.replace(/^http/, 'ws')}/ws?token=${encodeURIComponent(token)}`
+    socket = new WebSocket(url)
+    socket.onopen = () => onStatus(true)
+    socket.onmessage = (msg) => {
+      try {
+        onEvent(JSON.parse(String(msg.data)) as ServerEvent)
+      } catch {
+        /* ignore malformed frames */
+      }
+    }
+    socket.onclose = () => {
+      onStatus(false)
+      if (!closed) retry = setTimeout(open, 2000)
+    }
+    socket.onerror = () => socket?.close()
+  }
+
+  open()
+  return () => {
+    closed = true
+    if (retry) clearTimeout(retry)
+    socket?.close()
+  }
+}

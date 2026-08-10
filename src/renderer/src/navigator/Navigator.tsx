@@ -1,7 +1,7 @@
 import { ChevronRight, Plus, PanelLeftClose, Search, ShieldCheck } from 'lucide-react'
 import { useUiStore } from '../store/uiStore'
 import { useTreeStore } from '../store/treeStore'
-import ProjectTree from './ProjectTree'
+import ServerDocTree from './ServerDocTree'
 import OutlineTree from './OutlineTree'
 import { runRibbonAction } from '../ribbon/ribbonActions'
 
@@ -57,7 +57,7 @@ export default function Navigator(): React.JSX.Element {
       </div>
 
       <div className="navigator-body">
-        {treeTab === 'project' ? <ProjectTree /> : <OutlineTree />}
+        {treeTab === 'project' ? <ServerDocTree /> : <OutlineTree />}
       </div>
 
       {rootPath && (

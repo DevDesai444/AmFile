@@ -154,6 +154,47 @@
   height: 0;
 }
 
+/* ---------- Editor banners ---------- */
+.editor-banner {
+  max-width: 794px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 11px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  border: 1px solid var(--dv);
+  border-left-width: 2px;
+  background: var(--chrome2);
+  color: var(--mut);
+}
+.editor-banner strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.editor-banner--locked {
+  border-left-color: var(--hi);
+}
+.editor-banner--locked strong {
+  color: var(--hi);
+}
+.editor-banner--update {
+  border-left-color: var(--color-accent);
+  justify-content: space-between;
+}
+.editor-banner--update button {
+  flex: none;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  font-size: 10.5px;
+  padding: 4px 10px;
+}
+.editor-banner--update button:hover {
+  background: var(--color-accent);
+  color: #0f1113;
+}
+
 /* ---------- Find / Replace bar ---------- */
 .find-replace-bar {
   position: sticky;

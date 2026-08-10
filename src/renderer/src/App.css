@@ -83,6 +83,10 @@
   color: var(--med);
   border-color: color-mix(in srgb, var(--med) 40%, transparent);
 }
+.titlebar-saved-badge--locked {
+  color: var(--hi);
+  border-color: color-mix(in srgb, var(--hi) 45%, transparent);
+}
 .titlebar-right {
   display: flex;
   align-items: center;
@@ -473,6 +477,33 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+}
+.tree-rev {
+  flex: none;
+  font-family: var(--font-label);
+  font-size: 9.5px;
+  color: var(--mut2);
+}
+.tree-lock {
+  flex: none;
+}
+.tree-lock--other {
+  color: var(--hi);
+}
+.tree-lock--mine {
+  color: var(--low);
+}
+.tree-refresh {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 9px;
+  font-size: 10.5px;
+  color: var(--mut2);
+}
+.tree-refresh:hover {
+  color: var(--ink);
 }
 
 /* ---------- Dock ---------- */
@@ -972,6 +1003,100 @@
   font-size: 12px;
 }
 
+/* ---------- Login ---------- */
+.login-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--mut);
+}
+.login-logo {
+  height: 26px;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+.login-view h1 {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+.login-subtitle {
+  font-size: 12px;
+  color: var(--mut2);
+  margin: 0 0 22px;
+}
+.login-card {
+  width: 320px;
+  padding: 20px;
+}
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.login-card label {
+  font-family: var(--font-label);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mut2);
+  margin-top: 8px;
+}
+.login-card input {
+  background: var(--deep);
+  border: 1px solid var(--dv);
+  padding: 8px 9px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.login-card input:focus-visible {
+  border-color: var(--color-accent);
+}
+.login-submit {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px;
+  background: var(--color-accent);
+  color: #0f1113;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.login-submit:hover:not(:disabled) {
+  background: var(--color-accent-400);
+}
+.login-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.login-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--hi) 45%, transparent);
+  background: color-mix(in srgb, var(--hi) 12%, transparent);
+  color: var(--hi);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.login-footnote {
+  margin-top: 20px;
+  max-width: 340px;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--mut2);
+}
+
 /* ---------- Settings ---------- */
 .settings-view {
   padding: 30px;
@@ -1001,27 +1126,9 @@
   color: var(--ink);
 }
 
-/* ---------- Editor placeholder (Phase 1) ---------- */
-.editor-scroll {
-  height: 100%;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  padding: 32px;
-}
-.editor-page {
-  width: 794px;
-  min-height: 1123px;
-  background: var(--page-bg);
-  color: var(--page-text);
-  font-family: var(--font-doc);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  flex: none;
-}
-.editor-page-placeholder {
-  padding: 60px;
-  color: var(--page-text-muted);
-}
+/* Editor styles live in editor/editor.css. The placeholder rules that used to sit here
+   were dead but still winning the cascade — their `display: flex` on .editor-scroll turned
+   the editor banners into squashed flex items. */
 
 /* ---------- Folder run ---------- */
 .folder-run {

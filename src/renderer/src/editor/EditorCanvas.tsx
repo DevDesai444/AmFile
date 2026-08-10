@@ -33,6 +33,8 @@ import { insertImage } from './insertImage'
 import { useCommentStore } from '../store/commentStore'
 import { useDocumentStore } from '../store/documentStore'
 import { useComplianceStore } from '../store/complianceStore'
+import { useServerDocsStore } from '../store/serverDocsStore'
+import { useServerDocument } from './useServerDocument'
 import FindReplaceBar from './FindReplaceBar'
 import './editor.css'
 
@@ -82,7 +84,15 @@ export default function EditorCanvas(): React.JSX.Element {
     }
   })
 
-  const { save, openFromPath, exportPdf } = useDocumentIO(editor)
+  const { save: saveLocal, openFromPath, exportPdf } = useDocumentIO(editor)
+  const { saveToServer, reloadFromServer } = useServerDocument(editor)
+  const documentId = useDocumentStore((s) => s.documentId)
+  const lockedByOther = useDocumentStore((s) => s.lockedByOther)
+  const pendingUpdate = useServerDocsStore((s) => s.pendingUpdate)
+
+  // Server-backed documents save through the server (locking + revisions + audit);
+  // a purely local document still saves straight to a .docx on disk.
+  const save = documentId ? saveToServer : saveLocal
   useOutlineSync(editor)
   useEditorStats(editor)
   useTrackChangesSync(editor)
@@ -159,6 +169,24 @@ export default function EditorCanvas(): React.JSX.Element {
 
   return (
     <div className="editor-scroll">
+      {lockedByOther && (
+        <div className="editor-banner editor-banner--locked">
+          <strong>Read only.</strong> {lockedByOther} has this document checked out. Your changes cannot be saved until
+          they check it back in.
+        </div>
+      )}
+
+      {pendingUpdate && pendingUpdate.documentId === documentId && (
+        <div className="editor-banner editor-banner--update">
+          <span>
+            <strong>{pendingUpdate.savedBy}</strong> saved revision {pendingUpdate.revision} of this document.
+          </span>
+          <button type="button" onClick={() => void reloadFromServer()}>
+            Reload
+          </button>
+        </div>
+      )}
+
       {findState !== 'closed' && (
         <FindReplaceBar editor={editor} showReplace={findState === 'replace'} onClose={() => setFindState('closed')} />
       )}

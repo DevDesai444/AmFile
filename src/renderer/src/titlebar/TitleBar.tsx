@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react'
 import { Minus, Square, Copy, X, FileText, Search } from 'lucide-react'
 import logo from '../assets/amneal-logo.png'
 import { useDocumentStore } from '../store/documentStore'
+import { useSessionStore } from '../store/sessionStore'
 
 export default function TitleBar(): React.JSX.Element {
   const [isMaximized, setIsMaximized] = useState(false)
   const fileName = useDocumentStore((s) => s.fileName)
   const savedAt = useDocumentStore((s) => s.savedAt)
   const dirty = useDocumentStore((s) => s.dirty)
+  const revision = useDocumentStore((s) => s.revision)
+  const lockedByMe = useDocumentStore((s) => s.lockedByMe)
+  const lockedByOther = useDocumentStore((s) => s.lockedByOther)
+  const user = useSessionStore((s) => s.user)
+  const signOut = useSessionStore((s) => s.signOut)
 
   // macOS draws its own traffic lights inset into this bar, so the renderer must not
   // add a second set — it only draws window controls on Windows/Linux.
@@ -32,6 +38,12 @@ export default function TitleBar(): React.JSX.Element {
           <>
             <FileText size={13} strokeWidth={1.5} className="titlebar-file-icon" />
             <span className="titlebar-filename">{fileName}</span>
+            {revision > 0 && <span className="titlebar-saved-badge">v{revision}</span>}
+            {lockedByOther ? (
+              <span className="titlebar-saved-badge titlebar-saved-badge--locked">Locked by {lockedByOther}</span>
+            ) : lockedByMe ? (
+              <span className="titlebar-saved-badge">Checked out to you</span>
+            ) : null}
             {savedAt && !dirty && <span className="titlebar-saved-badge">Saved {savedAt}</span>}
             {dirty && <span className="titlebar-saved-badge titlebar-saved-badge--dirty">Unsaved</span>}
           </>
@@ -43,7 +55,21 @@ export default function TitleBar(): React.JSX.Element {
           <Search size={13} strokeWidth={1.5} />
           <span>Search</span>
         </button>
-        <div className="titlebar-avatar">RD</div>
+        {user && (
+          <button
+            type="button"
+            className="titlebar-avatar"
+            title={`${user.displayName} — ${user.email}\nRoles: ${user.roles.join(', ')}\nClick to sign out`}
+            onClick={() => void signOut()}
+          >
+            {user.displayName
+              .split(' ')
+              .map((p) => p[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase()}
+          </button>
+        )}
         {!isMac && (
           <div className="titlebar-winctl">
             <button type="button" aria-label="Minimize" onClick={() => window.amfile.window.minimize()}>
