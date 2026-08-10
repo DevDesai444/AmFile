@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core'
 import type { ParagraphStyleName } from './extensions/paragraphStyle'
 import { useDocumentStore } from '../store/documentStore'
 import { notImplemented, useToastStore } from '../common/toastStore'
+import { askText } from '../common/promptStore'
 import { handleInsertCommand } from './commands/insertCommands'
 import { handleLayoutCommand } from './commands/layoutCommands'
 import { handleDesignCommand } from './commands/designCommands'
@@ -55,7 +56,7 @@ const GROUP_HANDLERS = [
   handleMailingsCommand
 ]
 
-export function handleEditorCommand(editor: Editor, command: string, payload?: unknown): void {
+export async function handleEditorCommand(editor: Editor, command: string, payload?: unknown): Promise<void> {
   const chain = (): ReturnType<Editor['chain']> => editor.chain().focus()
 
   switch (command) {
@@ -156,21 +157,23 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
       return
 
     case 'insert.link': {
-      const url = window.prompt('Link URL')
-      if (url) chain().setLink({ href: url }).run()
+      const url = await askText('Link URL', '', { hint: 'For example https://www.fda.gov' })
+      if (url?.trim()) chain().setLink({ href: url.trim() }).run()
       return
     }
     case 'insert.comment':
-      handleReviewCommand(editor, 'comment.new')
+      await handleReviewCommand(editor, 'comment.new')
       return
     case 'insert.header': {
-      const text = window.prompt('Header text', useDocumentStore.getState().headerText)
+      const text = await askText('Header text', useDocumentStore.getState().headerText)
       if (text !== null) useDocumentStore.getState().setHeaderText(text)
       return
     }
     case 'insert.footer':
     case 'insert.pageNumber': {
-      const text = window.prompt('Footer text (use {page} for the page number)', useDocumentStore.getState().footerText)
+      const text = await askText('Footer text', useDocumentStore.getState().footerText, {
+        hint: 'Use {page} where the page number should appear.'
+      })
       if (text !== null) useDocumentStore.getState().setFooterText(text)
       return
     }
@@ -230,8 +233,10 @@ export function handleEditorCommand(editor: Editor, command: string, payload?: u
 
     default: {
       if (HANDLED_UPSTREAM.has(command)) return
+      // Awaited in order: a group handler may open a dialog before it knows whether it
+      // recognised the command, so "did anyone handle this?" is only answerable afterwards.
       for (const handler of GROUP_HANDLERS) {
-        if (handler(editor, command)) return
+        if (await handler(editor, command)) return
       }
       const leaf = command.includes('.') ? command.slice(command.indexOf('.') + 1) : command
       const label = leaf.replace(/([a-z0-9])([A-Z])/g, '$1 $2')

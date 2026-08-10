@@ -1,6 +1,7 @@
 import { ChevronRight, Plus, PanelLeftClose, Search, ShieldCheck, X } from 'lucide-react'
 import { useUiStore } from '../store/uiStore'
 import { useFolderStore } from '../store/folderStore'
+import { askText } from '../common/promptStore'
 import FolderTree from './FolderTree'
 import PermissionsDialog from './PermissionsDialog'
 import OutlineTree from './OutlineTree'
@@ -51,8 +52,11 @@ export default function Navigator(): React.JSX.Element {
           aria-label="New project"
           title="New project"
           onClick={async () => {
-            const name = window.prompt('Name your new project')
-            if (name) await useFolderStore.getState().createFolder(name, null)
+            const name = await askText('Name your new project', '', {
+              hint: 'You will own it, and decide who else gets in.',
+              confirmLabel: 'Create'
+            })
+            if (name?.trim()) await useFolderStore.getState().createFolder(name.trim(), null)
           }}
         >
           <Plus size={13} strokeWidth={1.5} />

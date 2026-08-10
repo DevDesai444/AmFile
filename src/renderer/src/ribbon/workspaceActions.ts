@@ -2,6 +2,7 @@ import { useUiStore } from '../store/uiStore'
 import { useDocumentStore } from '../store/documentStore'
 import { useComplianceStore } from '../store/complianceStore'
 import { useToastStore, notImplemented } from '../common/toastStore'
+import { askText } from '../common/promptStore'
 import { RULEBOOK } from '../common/rulebook'
 
 const toast = (msg: string, tone: 'info' | 'warn' | 'error' = 'info'): void =>
@@ -86,7 +87,8 @@ export async function runWorkspaceAction(act: string): Promise<void> {
         await navigator.clipboard.writeText(ref)
         toast('Document reference copied. Anyone with folder access can open it.')
       } catch {
-        window.prompt('Copy this document reference:', ref)
+        // Clipboard refused; show the reference so it can be copied by hand.
+        await askText('Copy this document reference', ref, { confirmLabel: 'Done' })
       }
       return
     }

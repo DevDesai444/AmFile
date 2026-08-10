@@ -32,8 +32,10 @@ g.fetch = async (): Promise<never> => {
 }
 
 // Every dialog answers "cancel"/"no" so no command can block or mutate beyond its first step.
-// A command must still route correctly even when the user backs out of its prompt.
-dom.window.prompt = (): null => null
+// A command must still route correctly even when the user backs out of its prompt. Electron
+// has no window.prompt, so prompts go through the in-app dialog; with no dialog mounted here,
+// an unanswered prompt would hang forever and every prompting command would pass vacuously.
+// Auto-cancelling reproduces the old `window.prompt = () => null` behaviour.
 dom.window.confirm = (): boolean => false
 dom.window.alert = (): void => undefined
 Object.defineProperty(dom.window.navigator, 'clipboard', {
@@ -75,9 +77,14 @@ dom.window.document.execCommand = (): boolean => true
 
 const { RIBBON } = await import('../src/renderer/src/ribbon/ribbonConfig')
 const { runRibbonAction } = await import('../src/renderer/src/ribbon/ribbonActions')
-const { registerEditorCommandHandler } = await import('../src/renderer/src/ribbon/editorCommandRegistry')
+const { registerEditorCommandHandler, settled } = await import('../src/renderer/src/ribbon/editorCommandRegistry')
 const { handleEditorCommand } = await import('../src/renderer/src/editor/commandHandler')
 const { useToastStore } = await import('../src/renderer/src/common/toastStore')
+const { usePromptStore } = await import('../src/renderer/src/common/promptStore')
+
+usePromptStore.subscribe((state) => {
+  if (state.request) usePromptStore.getState().answer(null)
+})
 
 /**
  * Stand-in for a mounted Tiptap editor. Command modules only ever build a fluent chain and
@@ -134,7 +141,7 @@ registerEditorCommandHandler('main', (command, payload) => {
   if (['save', 'print', 'exportPdf', 'compliance.checkDocument', 'edit.find', 'edit.replace', 'insert.image'].includes(command)) {
     return
   }
-  handleEditorCommand(editor as never, command, payload)
+  return handleEditorCommand(editor as never, command, payload)
 })
 
 /** Commands that intentionally refuse, with the reason surfaced to the user. */
@@ -180,6 +187,7 @@ for (const control of unique) {
   useToastStore.setState({ toasts: [] })
   try {
     await runRibbonAction(control.act)
+    await settled()
   } catch (err) {
     failures.push(`${control.tab} › ${control.label} (${control.act}) THREW: ${(err as Error).message}`)
     continue
@@ -211,7 +219,7 @@ for (const [command, payload] of [
   ['font.setSize', 14]
 ] as const) {
   useToastStore.setState({ toasts: [] })
-  handleEditorCommand(editor as never, command, payload)
+  await handleEditorCommand(editor as never, command, payload)
   const toasts = useToastStore.getState().toasts.map((t) => t.message)
   if (toasts.some((m) => m.includes('implemented yet'))) {
     failures.push(`Font dropdown → ${command} is not handled`)

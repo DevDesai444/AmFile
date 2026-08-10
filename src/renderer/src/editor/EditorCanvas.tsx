@@ -154,7 +154,7 @@ export default function EditorCanvas(): React.JSX.Element {
         insertImage(editor)
         return
       }
-      handleEditorCommand(editor, command, payload)
+      return handleEditorCommand(editor, command, payload)
     })
   }, [editor, save, exportPdf, printDocument, checkDocument, filePath, fileName])
 

@@ -23,6 +23,7 @@ import { useServerDocsStore } from './store/serverDocsStore'
 import { useFolderStore } from './store/folderStore'
 import { connectEvents } from './api/client'
 import Toaster from './common/Toaster'
+import PromptDialog from './common/PromptDialog'
 
 export default function App(): React.JSX.Element {
   const view = useUiStore((s) => s.view)
@@ -83,6 +84,7 @@ export default function App(): React.JSX.Element {
       <div className="app-shell">
         <TitleBar />
         <div className="app-body" />
+        <PromptDialog />
       </div>
     )
   }
@@ -96,6 +98,7 @@ export default function App(): React.JSX.Element {
             <LoginView />
           </div>
         </div>
+        <PromptDialog />
       </div>
     )
   }
@@ -111,6 +114,7 @@ export default function App(): React.JSX.Element {
           </div>
         </div>
         <Toaster />
+        <PromptDialog />
       </div>
     )
   }
@@ -132,6 +136,7 @@ export default function App(): React.JSX.Element {
       </div>
       <StatusBar />
       <Toaster />
+      <PromptDialog />
     </div>
   )
 }

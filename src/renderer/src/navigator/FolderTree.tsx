@@ -5,6 +5,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { useDocumentStore } from '../store/documentStore'
 import { useUiStore } from '../store/uiStore'
 import { runRibbonAction } from '../ribbon/ribbonActions'
+import { askText } from '../common/promptStore'
 
 const ACCESS_LABEL: Record<string, string> = {
   viewer: 'Read only',
@@ -111,10 +112,10 @@ function FolderRow({ node, depth, forceOpen }: { node: FolderNode; depth: number
               type="button"
               className="tree-mini-btn"
               title="New sub-folder"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation()
-                const name = window.prompt(`New folder inside “${node.name}”`)
-                if (name) void createFolder(name, node.id)
+                const name = await askText(`New folder inside “${node.name}”`, '', { confirmLabel: 'Create' })
+                if (name?.trim()) await createFolder(name.trim(), node.id)
               }}
             >
               <FolderPlus size={11} strokeWidth={1.5} />
@@ -123,10 +124,10 @@ function FolderRow({ node, depth, forceOpen }: { node: FolderNode; depth: number
               type="button"
               className="tree-mini-btn"
               title="New document in this folder"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation()
-                const name = window.prompt(`New document in “${node.name}”`)
-                if (name) void createDocument(name, node.id)
+                const name = await askText(`New document in “${node.name}”`, '', { confirmLabel: 'Create' })
+                if (name?.trim()) await createDocument(name.trim(), node.id)
               }}
             >
               <FileText size={11} strokeWidth={1.5} />
@@ -203,7 +204,7 @@ export default function FolderTree(): React.JSX.Element {
       {folders.length === 0 && (
         <div className="navigator-empty">
           <p>No folders you can access.</p>
-          <p className="navigator-empty-hint">An owner or administrator needs to grant you access.</p>
+          <p className="navigator-empty-hint">Start one below, or ask an owner to add your email address.</p>
         </div>
       )}
       {folders.length > 0 && visible.length === 0 && (
@@ -221,10 +222,13 @@ export default function FolderTree(): React.JSX.Element {
           className="tree-refresh"
           disabled={busy}
           onClick={async () => {
-            const name = window.prompt('Name your new project')
-            if (!name) return
+            const name = await askText('Name your new project', '', {
+              hint: 'You will own it, and decide who else gets in.',
+              confirmLabel: 'Create'
+            })
+            if (!name?.trim()) return
             setBusy(true)
-            await createFolder(name, null)
+            await createFolder(name.trim(), null)
             setBusy(false)
           }}
         >

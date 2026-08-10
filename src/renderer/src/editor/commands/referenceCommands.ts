@@ -19,7 +19,7 @@ function findNext(editor: Editor, needle: string, from: number): number | null {
   return at === -1 ? null : at
 }
 
-export function handleReferenceCommand(editor: Editor, command: string): boolean {
+export async function handleReferenceCommand(editor: Editor, command: string): Promise<boolean> {
   const refs = useReferencesStore.getState()
   const chain = (): ReturnType<Editor['chain']> => editor.chain().focus()
 
@@ -44,7 +44,7 @@ export function handleReferenceCommand(editor: Editor, command: string): boolean
     }
 
     case 'footnote.insert': {
-      const text = askText('Footnote text')
+      const text = await askText('Footnote text')
       if (!text) return true
       const note = refs.addFootnote(text)
       chain().toggleSuperscript().insertContent(String(note.number)).toggleSuperscript().run()
@@ -75,16 +75,16 @@ export function handleReferenceCommand(editor: Editor, command: string): boolean
     case 'citation.insert': {
       const { sources, citationStyle } = useReferencesStore.getState()
       const options = [...sources.map((s) => `${s.author} (${s.year}) — ${s.title}`), 'New source…']
-      const choice = pick('Insert citation', options)
+      const choice = await pick('Insert citation', options)
       if (!choice) return true
 
       let source = sources[options.indexOf(choice)]
       if (choice === 'New source…') {
-        const author = askText('Author or issuing body', 'ICH')
+        const author = await askText('Author or issuing body', 'ICH')
         if (!author) return true
-        const title = askText('Title', '') ?? ''
-        const year = askText('Year', String(new Date().getFullYear())) ?? ''
-        const detail = askText('Detail (journal, guideline number…)', '') ?? ''
+        const title = await askText('Title', '') ?? ''
+        const year = await askText('Year', String(new Date().getFullYear())) ?? ''
+        const detail = await askText('Detail (journal, guideline number…)', '') ?? ''
         source = useReferencesStore.getState().addSource({ author, title, year, detail })
       }
       if (!source) return true
@@ -99,7 +99,7 @@ export function handleReferenceCommand(editor: Editor, command: string): boolean
         toast('No sources yet — add one with Insert citation.')
         return true
       }
-      const choice = pick(
+      const choice = await pick(
         'Sources — pick one to remove',
         [...sources.map((s) => `${s.author} (${s.year}) — ${s.title}`), 'Keep all']
       )
@@ -138,9 +138,9 @@ export function handleReferenceCommand(editor: Editor, command: string): boolean
     }
 
     case 'caption.insert': {
-      const kind = pick('Caption for', ['Figure', 'Table', 'Equation'] as const)
+      const kind = await pick('Caption for', ['Figure', 'Table', 'Equation'] as const)
       if (!kind) return true
-      const text = askText(`${kind} caption text`)
+      const text = await askText(`${kind} caption text`)
       if (text === null) return true
       const caption = refs.addCaption(kind as Caption['kind'], text)
       chain()
@@ -177,7 +177,7 @@ export function handleReferenceCommand(editor: Editor, command: string): boolean
     case 'index.markEntry': {
       const { from, to, empty } = editor.state.selection
       const selected = empty ? '' : editor.state.doc.textBetween(from, to)
-      const term = askText('Index entry', selected)
+      const term = await askText('Index entry', selected)
       if (!term) return true
       refs.addIndexEntry(term)
       toast(`Marked "${term}" for the index.`)

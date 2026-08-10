@@ -1,14 +1,15 @@
 import type { Editor } from '@tiptap/core'
 import { useCommentStore } from '../store/commentStore'
+import { askText } from '../common/promptStore'
 
-export function insertComment(editor: Editor): void {
+export async function insertComment(editor: Editor): Promise<void> {
   const { from, to, empty } = editor.state.selection
   if (empty) {
     window.alert('Select some text first to attach a comment to it.')
     return
   }
-  const body = window.prompt('Comment')
-  if (!body) return
+  const body = await askText('Comment', '', { confirmLabel: 'Add comment' })
+  if (!body?.trim()) return
 
   const quotedText = editor.state.doc.textBetween(from, to)
   const commentId = `cm-${Date.now()}`

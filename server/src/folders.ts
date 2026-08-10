@@ -224,6 +224,25 @@ export async function setFolderAccess(
   ])
   if (!target) return 'No such user.'
 
+  // A project with no owner is unreachable, and there is deliberately no administrator to
+  // recover it. Removing or demoting the last owner is therefore permanent data loss from one
+  // click, so it is refused; adding a second owner first is the way through.
+  if (access !== 'owner') {
+    const isTopLevel = await queryOne<{ parent_id: string | null }>(
+      'SELECT parent_id FROM folders WHERE id = $1',
+      [folderId]
+    )
+    if (isTopLevel && isTopLevel.parent_id === null) {
+      const owners = await query<{ user_id: string }>(
+        "SELECT user_id FROM folder_permissions WHERE folder_id = $1 AND access = 'owner'",
+        [folderId]
+      )
+      if (owners.length === 1 && owners[0].user_id === targetUserId) {
+        return 'This is the only owner of the project. Add another owner first, or nobody will be able to reach it.'
+      }
+    }
+  }
+
   if (access === null) {
     await query('DELETE FROM folder_permissions WHERE folder_id = $1 AND user_id = $2', [folderId, targetUserId])
   } else {

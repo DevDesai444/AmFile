@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, X, MessageSquare, AlertTriangle, RefreshCw, GitPullRequest } from 'lucide-react'
+import { askText } from '../common/promptStore'
 import { api, type Proposal, type ProposalReview, type ProposalComment } from '../api/client'
 import { useDocumentStore } from '../store/documentStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -127,9 +128,16 @@ function ProposalCard({ p, onChanged }: { p: Proposal; onChanged: () => void }):
               type="button"
               className="proposal-accept"
               disabled={busy}
-              onClick={() =>
-                void act(() => api.acceptProposal(p.id, window.prompt('Reason for accepting (optional)') ?? null), 'Accepted')
-              }
+              onClick={async () => {
+                const reason = await askText('Reason for accepting', '', {
+                  hint: 'Optional — it is recorded in the audit trail against this revision.',
+                  confirmLabel: 'Accept'
+                })
+                // Cancelling the dialog cancels the acceptance; an empty answer accepts with
+                // no reason. Treating cancel as "accept anyway" would make a mis-click final.
+                if (reason === null) return
+                await act(() => api.acceptProposal(p.id, reason.trim() || null), 'Accepted')
+              }}
             >
               <Check size={12} strokeWidth={1.5} />
               Accept
@@ -138,9 +146,14 @@ function ProposalCard({ p, onChanged }: { p: Proposal; onChanged: () => void }):
               type="button"
               className="proposal-close"
               disabled={busy}
-              onClick={() =>
-                void act(() => api.closeProposal(p.id, window.prompt('Reason for closing (optional)') ?? null), 'Closed')
-              }
+              onClick={async () => {
+                const reason = await askText('Reason for closing', '', {
+                  hint: 'Optional — the author sees it, and it is recorded in the audit trail.',
+                  confirmLabel: 'Close proposal'
+                })
+                if (reason === null) return
+                await act(() => api.closeProposal(p.id, reason.trim() || null), 'Closed')
+              }}
             >
               <X size={12} strokeWidth={1.5} />
               Close

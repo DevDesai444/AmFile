@@ -17,7 +17,7 @@ function requireImage(editor: Editor): boolean {
   return false
 }
 
-export function handleLayoutCommand(editor: Editor, command: string): boolean {
+export async function handleLayoutCommand(editor: Editor, command: string): Promise<boolean> {
   const doc = useDocumentStore.getState()
   const chain = (): ReturnType<Editor['chain']> => editor.chain().focus()
 
@@ -54,7 +54,7 @@ export function handleLayoutCommand(editor: Editor, command: string): boolean {
     case 'layout.indentLeft':
     case 'layout.indentRight': {
       const side = command === 'layout.indentLeft' ? 'left' : 'right'
-      const steps = askNumber(`Indent ${side} — number of levels (0 clears)`, 1, 0, 8)
+      const steps = await askNumber(`Indent ${side} — number of levels (0 clears)`, 1, 0, 8)
       if (steps === null) return true
       // The indent extension steps one level at a time, so apply or clear by repetition.
       const type = editor.state.selection.$from.parent.type.name
@@ -69,7 +69,7 @@ export function handleLayoutCommand(editor: Editor, command: string): boolean {
       return true
     }
     case 'layout.spacingBefore': {
-      const pt = askNumber('Space before paragraph (pt)', doc.paragraphSpacingPt, 0, 72)
+      const pt = await askNumber('Space before paragraph (pt)', doc.paragraphSpacingPt, 0, 72)
       if (pt === null) return true
       useDocumentStore.setState({ paragraphSpacingPt: pt, dirty: true })
       toast(`Paragraph spacing: ${pt} pt`)
@@ -78,21 +78,21 @@ export function handleLayoutCommand(editor: Editor, command: string): boolean {
 
     case 'arrange.position': {
       if (!requireImage(editor)) return true
-      const choice = pick('Picture position', ['left', 'center', 'right'] as const)
+      const choice = await pick('Picture position', ['left', 'center', 'right'] as const)
       if (!choice) return true
       chain().updateAttributes('image', { align: choice as ImageAlign, wrap: 'inline' }).run()
       return true
     }
     case 'arrange.wrapText': {
       if (!requireImage(editor)) return true
-      const choice = pick('Text wrapping', ['inline', 'left', 'right'] as const)
+      const choice = await pick('Text wrapping', ['inline', 'left', 'right'] as const)
       if (!choice) return true
       chain().updateAttributes('image', { wrap: choice as ImageWrap, align: null }).run()
       return true
     }
     case 'arrange.align': {
       if (!requireImage(editor)) return true
-      const choice = pick('Align picture', ['left', 'center', 'right'] as const)
+      const choice = await pick('Align picture', ['left', 'center', 'right'] as const)
       if (!choice) return true
       chain().updateAttributes('image', { align: choice as ImageAlign }).run()
       return true

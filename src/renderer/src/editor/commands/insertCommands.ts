@@ -67,15 +67,15 @@ async function insertGraphic(editor: Editor, svg: string, alt: string): Promise<
   insertPicture(editor, await rasterize(svg), alt)
 }
 
-export function handleInsertCommand(editor: Editor, command: string): boolean {
+export async function handleInsertCommand(editor: Editor, command: string): Promise<boolean> {
   const chain = (): ReturnType<Editor['chain']> => editor.chain().focus()
   const accent = useDocumentStore.getState().accent
 
   switch (command) {
     case 'insert.coverPage': {
-      const title = askText('Document title', useDocumentStore.getState().fileName?.replace(/\.docx$/, '') ?? '')
+      const title = await askText('Document title', useDocumentStore.getState().fileName?.replace(/\.docx$/, '') ?? '')
       if (title === null) return true
-      const subtitle = askText('Subtitle or document code', '') ?? ''
+      const subtitle = await askText('Subtitle or document code', '') ?? ''
       chain()
         .insertContentAt(0, [
           { type: 'heading', attrs: { level: 1, textAlign: 'center' }, content: [{ type: 'text', text: title }] },
@@ -113,16 +113,16 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
     }
 
     case 'insert.symbol': {
-      const choice = pick('Insert symbol', SYMBOLS)
+      const choice = await pick('Insert symbol', SYMBOLS)
       if (!choice) return true
       chain().insertContent(choice.charAt(0)).run()
       return true
     }
 
     case 'insert.equation': {
-      const choice = pick('Insert equation', EQUATIONS)
+      const choice = await pick('Insert equation', EQUATIONS)
       if (!choice) return true
-      const text = choice === 'Custom…' ? askText('Equation text') : choice
+      const text = choice === 'Custom…' ? await askText('Equation text') : choice
       if (!text) return true
       chain()
         .insertContent([
@@ -140,14 +140,14 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
         now.toISOString().slice(0, 10),
         now.toLocaleString()
       ] as const
-      const choice = pick('Insert date and time', formats)
+      const choice = await pick('Insert date and time', formats)
       if (!choice) return true
       chain().insertContent(choice).run()
       return true
     }
 
     case 'insert.textBox': {
-      const text = askText('Text box contents')
+      const text = await askText('Text box contents')
       if (!text) return true
       chain()
         .insertContent([{ type: 'blockquote', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] }])
@@ -168,7 +168,7 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
     }
 
     case 'insert.wordArt': {
-      const text = askText('WordArt text')
+      const text = await askText('WordArt text')
       if (!text) return true
       void insertGraphic(editor, wordArtSvg(text, accent), text)
       return true
@@ -176,15 +176,15 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
 
     case 'insert.quickParts': {
       const names = Object.keys(QUICK_PARTS) as Array<keyof typeof QUICK_PARTS>
-      const choice = pick('Insert quick part', names)
+      const choice = await pick('Insert quick part', names)
       if (!choice) return true
       chain().insertContent([{ type: 'paragraph', content: [{ type: 'text', text: QUICK_PARTS[choice] }] }]).run()
       return true
     }
 
     case 'insert.signature': {
-      const who = askText('Name on the signature line', '') ?? ''
-      const role = askText('Role or title', '') ?? ''
+      const who = await askText('Name on the signature line', '') ?? ''
+      const role = await askText('Role or title', '') ?? ''
       chain()
         .insertContent([
           { type: 'paragraph', content: [{ type: 'text', text: '________________________________' }] },
@@ -223,7 +223,7 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
     }
 
     case 'insert.bookmark': {
-      const name = askText('Bookmark name')
+      const name = await askText('Bookmark name')
       if (!name) return true
       useReferencesStore.getState().addBookmark(name, editor.state.selection.from)
       toast(`Bookmark "${name}" set.`)
@@ -241,31 +241,31 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
         toast('Add a heading or a bookmark first — a cross-reference needs a target.')
         return true
       }
-      const choice = pick('Cross-reference to', targets)
+      const choice = await pick('Cross-reference to', targets)
       if (!choice) return true
       chain().insertContent(choice.replace(/^(Heading|Bookmark): /, '')).run()
       return true
     }
 
     case 'insert.shapes': {
-      const kind = pick('Insert shape', SHAPE_KINDS)
+      const kind = await pick('Insert shape', SHAPE_KINDS)
       if (!kind) return true
       void insertGraphic(editor, shapeSvg(kind, accent), `${kind} shape`)
       return true
     }
 
     case 'insert.icons': {
-      const kind = pick('Insert icon', ICON_KINDS)
+      const kind = await pick('Insert icon', ICON_KINDS)
       if (!kind) return true
       void insertGraphic(editor, iconSvg(kind, accent), `${kind} icon`)
       return true
     }
 
     case 'insert.chart': {
-      const kind = pick('Chart type', ['column', 'bar', 'line', 'pie'] as const)
+      const kind = await pick('Chart type', ['column', 'bar', 'line', 'pie'] as const)
       if (!kind) return true
-      const title = askText('Chart title', '') ?? ''
-      const raw = askText(
+      const title = await askText('Chart title', '') ?? ''
+      const raw = await askText(
         'Data — one "label = value" per line',
         'Batch 1 = 98.4\nBatch 2 = 99.1\nBatch 3 = 97.8'
       )
@@ -280,9 +280,9 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
     }
 
     case 'insert.smartArt': {
-      const kind = pick('Diagram type', SMARTART_KINDS)
+      const kind = await pick('Diagram type', SMARTART_KINDS)
       if (!kind) return true
-      const raw = askText('Steps — one per line', 'Weigh\nBlend\nCompress\nCoat')
+      const raw = await askText('Steps — one per line', 'Weigh\nBlend\nCompress\nCoat')
       if (raw === null) return true
       const steps = raw.split('\n').map((s) => s.trim()).filter(Boolean)
       if (steps.length === 0) {
@@ -300,12 +300,12 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
       }
       void window.amfile.media
         .listScreenSources()
-        .then((sources) => {
+        .then(async (sources) => {
           if (sources.length === 0) {
             toast('No screens or windows available to capture.')
             return
           }
-          const choice = pick(
+          const choice = await pick(
             'Capture which screen or window?',
             sources.map((s) => s.name)
           )
@@ -330,9 +330,9 @@ export function handleInsertCommand(editor: Editor, command: string): boolean {
       return true
 
     case 'insert.table': {
-      const rows = askNumber('Rows', 3, 1, 50)
+      const rows = await askNumber('Rows', 3, 1, 50)
       if (rows === null) return true
-      const cols = askNumber('Columns', 3, 1, 20)
+      const cols = await askNumber('Columns', 3, 1, 20)
       if (cols === null) return true
       chain().insertTable({ rows, cols, withHeaderRow: true }).run()
       return true

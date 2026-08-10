@@ -5,6 +5,7 @@ import BlueprintCard from '../common/BlueprintCard'
 import { useFolderStore } from '../store/folderStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useToastStore } from '../common/toastStore'
+import { askText } from '../common/promptStore'
 
 /**
  * Landing screen. Every action here must do something real — the previous version offered
@@ -23,8 +24,11 @@ export default function Welcome(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
 
   const newProject = async (): Promise<void> => {
-    const name = window.prompt('Name your new project')
-    if (!name) return
+    const name = await askText('Name your new project', '', {
+      hint: 'You will own it, and decide who else gets in.',
+      confirmLabel: 'Create'
+    })
+    if (!name?.trim()) return
     setBusy(true)
     await createFolder(name, null)
     setBusy(false)
@@ -38,8 +42,8 @@ export default function Welcome(): React.JSX.Element {
       push('Create a project first, or pick one in the left panel.', 'warn')
       return
     }
-    const name = window.prompt(`New document in “${target.name}”`)
-    if (!name) return
+    const name = await askText(`New document in “${target.name}”`, '', { confirmLabel: 'Create' })
+    if (!name?.trim()) return
     setBusy(true)
     await createDocument(name, target.id)
     setBusy(false)

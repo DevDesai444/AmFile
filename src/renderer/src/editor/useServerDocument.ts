@@ -6,6 +6,7 @@ import { useServerDocsStore } from '../store/serverDocsStore'
 import { useCommentStore } from '../store/commentStore'
 import { useProposalStore } from '../store/proposalStore'
 import { useToastStore } from '../common/toastStore'
+import { askText } from '../common/promptStore'
 import { useSessionStore } from '../store/sessionStore'
 
 /** Renew the lock well inside the server's 90s lease so a slow network doesn't drop it. */
@@ -85,7 +86,12 @@ export function useServerDocument(editor: Editor | null): {
       const myOpen = useProposalStore
         .getState()
         .proposals.find((p) => p.status === 'open' && p.authorId === useSessionStore.getState().user?.id)
-      const summary = myOpen ? null : window.prompt('Briefly, what did you change? (optional)')
+      const summary = myOpen
+        ? null
+        : await askText('Briefly, what did you change?', '', {
+            hint: 'Optional — it shows on your proposal so the reviewer knows what to look at.',
+            confirmLabel: 'Save for review'
+          })
       const res = await api.saveProposal(documentId, editor.getJSON(), summary)
       markSaved()
       await useProposalStore.getState().refresh(documentId)

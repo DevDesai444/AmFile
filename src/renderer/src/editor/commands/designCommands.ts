@@ -15,7 +15,7 @@ const PAGE_COLOR_VALUES: Record<(typeof PAGE_COLORS)[number], string | null> = {
   'Pale green': '#f4faf5'
 }
 
-export function handleDesignCommand(editor: Editor, command: string): boolean {
+export async function handleDesignCommand(editor: Editor, command: string): Promise<boolean> {
   const doc = useDocumentStore.getState()
 
   switch (command) {
@@ -38,7 +38,7 @@ export function handleDesignCommand(editor: Editor, command: string): boolean {
     }
 
     case 'design.fonts': {
-      const choice = pick('Document font', BODY_FONTS, doc.theme.bodyFont as (typeof BODY_FONTS)[number])
+      const choice = await pick('Document font', BODY_FONTS, doc.theme.bodyFont as (typeof BODY_FONTS)[number])
       if (!choice) return true
       useDocumentStore.setState((s) => ({ theme: { ...s.theme, bodyFont: choice }, dirty: true }))
       editor.chain().focus().selectAll().setFontFamily(choice).run()
@@ -60,7 +60,7 @@ export function handleDesignCommand(editor: Editor, command: string): boolean {
     }
 
     case 'design.watermark': {
-      const text = askText('Watermark text (blank removes it)', doc.watermark || 'DRAFT')
+      const text = await askText('Watermark text (blank removes it)', doc.watermark || 'DRAFT')
       if (text === null) return true
       doc.setWatermark(text.trim())
       toast(text.trim() ? `Watermark: ${text.trim()}` : 'Watermark removed')
@@ -71,7 +71,7 @@ export function handleDesignCommand(editor: Editor, command: string): boolean {
       const current = (Object.keys(PAGE_COLOR_VALUES) as Array<(typeof PAGE_COLORS)[number]>).find(
         (k) => PAGE_COLOR_VALUES[k] === doc.pageColor
       )
-      const choice = pick('Page colour', PAGE_COLORS, current)
+      const choice = await pick('Page colour', PAGE_COLORS, current)
       if (!choice) return true
       doc.setPageColor(PAGE_COLOR_VALUES[choice])
       toast(`Page colour: ${choice}`)
@@ -86,7 +86,7 @@ export function handleDesignCommand(editor: Editor, command: string): boolean {
 
     case 'styles.gallery': {
       const styles = ['Normal', 'Heading 1', 'Heading 2', 'Heading 3', 'CTD section', 'Reference', 'Table caption'] as const
-      const choice = pick('Apply style', styles)
+      const choice = await pick('Apply style', styles)
       if (!choice) return true
       const chain = editor.chain().focus()
       switch (choice) {

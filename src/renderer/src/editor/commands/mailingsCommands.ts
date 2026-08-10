@@ -46,7 +46,7 @@ function loadRecipientsFile(): void {
   input.click()
 }
 
-export function handleMailingsCommand(editor: Editor, command: string): boolean {
+export async function handleMailingsCommand(editor: Editor, command: string): Promise<boolean> {
   const store = useMailingsStore.getState()
   const chain = (): ReturnType<Editor['chain']> => editor.chain().focus()
 
@@ -56,7 +56,7 @@ export function handleMailingsCommand(editor: Editor, command: string): boolean 
       return true
 
     case 'mailings.startMerge': {
-      const kind = pick('Merge to', ['Letters', 'Envelopes', 'Labels', 'Directory'] as const, store.kind)
+      const kind = await pick('Merge to', ['Letters', 'Envelopes', 'Labels', 'Directory'] as const, store.kind)
       if (!kind) return true
       store.setKind(kind as MergeKind)
       if (store.recipients.length === 0) {
@@ -75,7 +75,7 @@ export function handleMailingsCommand(editor: Editor, command: string): boolean 
         const first = r[fields[0]] ?? `Row ${i + 1}`
         return `${excluded.has(i) ? '☐' : '☑'} ${first}`
       })
-      const choice = pick('Include or exclude a recipient', [...labels, 'Done'])
+      const choice = await pick('Include or exclude a recipient', [...labels, 'Done'])
       if (!choice || choice === 'Done') return true
       useMailingsStore.getState().toggleExcluded(labels.indexOf(choice))
       const active = useMailingsStore.getState().activeRecipients().length
@@ -85,7 +85,7 @@ export function handleMailingsCommand(editor: Editor, command: string): boolean 
 
     case 'mailings.mergeField': {
       if (!needRecipients()) return true
-      const field = pick('Insert merge field', useMailingsStore.getState().fields)
+      const field = await pick('Insert merge field', useMailingsStore.getState().fields)
       if (!field) return true
       chain().insertContent(`«${field}»`).run()
       return true
@@ -112,7 +112,7 @@ export function handleMailingsCommand(editor: Editor, command: string): boolean 
     case 'mailings.greetingLine': {
       if (!needRecipients()) return true
       const nameField = resolveField('Name') ?? resolveField('FirstName') ?? useMailingsStore.getState().fields[0]
-      const salutation = pick('Greeting', ['Dear', 'Hello', 'To', 'Attn:'] as const)
+      const salutation = await pick('Greeting', ['Dear', 'Hello', 'To', 'Attn:'] as const)
       if (!salutation) return true
       chain()
         .insertContent([
@@ -216,9 +216,9 @@ export function handleMailingsCommand(editor: Editor, command: string): boolean 
     }
 
     case 'mailings.labels': {
-      const cols = askNumber('Labels across the page', 3, 1, 6)
+      const cols = await askNumber('Labels across the page', 3, 1, 6)
       if (cols === null) return true
-      const rows = askNumber('Labels down the page', 8, 1, 20)
+      const rows = await askNumber('Labels down the page', 8, 1, 20)
       if (rows === null) return true
       const hasList = useMailingsStore.getState().recipients.length > 0
       chain().insertTable({ rows, cols, withHeaderRow: false }).run()

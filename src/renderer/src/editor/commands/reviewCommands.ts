@@ -45,7 +45,7 @@ function commentIdAtCursor(editor: Editor): string | null {
   return id ? String(id) : null
 }
 
-export function handleReviewCommand(editor: Editor, command: string): boolean {
+export async function handleReviewCommand(editor: Editor, command: string): Promise<boolean> {
   const ui = useUiStore.getState()
   const doc = useDocumentStore.getState()
 
@@ -113,7 +113,7 @@ export function handleReviewCommand(editor: Editor, command: string): boolean {
       return true
 
     case 'review.language': {
-      const choice = pick('Proofing language', LANGUAGES, doc.language as (typeof LANGUAGES)[number])
+      const choice = await pick('Proofing language', LANGUAGES, doc.language as (typeof LANGUAGES)[number])
       if (!choice) return true
       doc.setLanguage(choice)
       toast(`Proofing language: ${choice}`)
