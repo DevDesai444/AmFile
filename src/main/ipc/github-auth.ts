@@ -14,7 +14,31 @@ import { join } from 'node:path'
  * REST API at api.github.com does send them, so everything after sign-in is called directly
  * from the renderer.
  */
-const CLIENT_ID = process.env.AMFILE_GITHUB_CLIENT_ID ?? ''
+/**
+ * Read the client id from the environment, falling back to a `.env` file beside the project.
+ *
+ * The fallback exists so the id is pasted once rather than prefixed onto every launch command —
+ * and so a colleague setting up a second machine edits one line instead of learning to export a
+ * variable. Parsed by hand to avoid a dependency for six lines of work.
+ */
+function readClientId(): string {
+  const fromEnv = process.env.AMFILE_GITHUB_CLIENT_ID?.trim()
+  if (fromEnv) return fromEnv
+  for (const candidate of [join(process.cwd(), '.env'), join(app.getAppPath(), '.env')]) {
+    try {
+      const line = readFileSync(candidate, 'utf8')
+        .split('\n')
+        .find((l) => l.trim().startsWith('AMFILE_GITHUB_CLIENT_ID='))
+      const value = line?.split('=').slice(1).join('=').trim().replace(/^["']|["']$/g, '')
+      if (value) return value
+    } catch {
+      // No .env here; try the next location.
+    }
+  }
+  return ''
+}
+
+const CLIENT_ID = readClientId()
 const TOKEN_FILE = (): string => join(app.getPath('userData'), 'github-token')
 
 export function isConfigured(): boolean {
