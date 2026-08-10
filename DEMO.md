@@ -1,179 +1,181 @@
-# AmFile — demo runbook
+# AmFile — setting up and testing across machines
 
-Read this first. It tells you what to run, what to show, and what **not** to click, so nothing
-surprises you in front of an audience.
-
----
-
-## 1. Start it (two terminals, ~30 seconds)
-
-**Terminal 1 — the server**
-
-```bash
-cd ~/dev/AmFile/server && npm start
-```
-
-Wait for `AmFile server listening on http://127.0.0.1:8787`.
-
-**Terminal 2 — the app**
-
-```bash
-cd ~/dev/AmFile && npm run dev
-```
-
-The AmFile window opens on the sign-in screen.
-
-> The server needs the Databricks CLI signed in, because the database is Lakebase and it
-> authenticates with a Databricks token. If the server errors on startup, run
-> `databricks auth login` and start it again.
-
-**Sanity check before you present:**
-
-```bash
-curl -s http://127.0.0.1:8787/api/health
-```
-
-Should print `{"ok":true,"service":"amfile-server"}`.
+AmFile has no server, no database and no accounts of its own. It talks to GitHub. That is the
+whole of the setup story: install the app, sign in with GitHub, and the projects you have been
+added to are there.
 
 ---
 
-## 2. Who can sign in
+## 0. One-time: register the GitHub app (5 minutes, once ever)
 
-There are no sample accounts and no "create account" screen. **AmFile issues no accounts at
-all** — you sign in with GitHub, and the verified email GitHub gives us is your identity.
+GitHub has no API for creating an OAuth app, so this step is yours and cannot be automated.
 
-The database currently holds exactly one user (`devdesai@amneal.com`) and no projects, so the
-first thing you will do on stage is create one.
+1. <https://github.com/settings/applications/new>
+2. **Application name** `AmFile` · **Homepage URL** anything (e.g. `https://amneal.com`)
+3. **Authorization callback URL** anything — it is never used; the device flow has no redirect
+4. Create it, then on the app page tick **Enable Device Flow** and **Update application**
+5. Copy the **Client ID** (starts `Ov23…`). There is no client secret to copy — the device flow
+   does not use one, which is why it suits a desktop app.
 
-### Before the demo: one 60-second setup step
-
-GitHub sign-in needs a public client id, and only you can create it — GitHub has no API for
-registering an OAuth app.
-
-1. Go to <https://github.com/settings/applications/new>
-2. **Application name**: `AmFile` · **Homepage URL**: anything, e.g. `https://amneal.com`
-3. **Authorization callback URL**: anything, e.g. `https://amneal.com` — it is never used, the
-   device flow has no redirect
-4. Create it, then on the app page tick **Enable Device Flow** and save
-5. Copy the **Client ID** and start the server with it:
+Start AmFile with it:
 
 ```bash
-cd ~/dev/AmFile/server && AMFILE_GITHUB_CLIENT_ID=Ov23xxxxxxxxxxxx npm start
+AMFILE_GITHUB_CLIENT_ID=Ov23xxxxxxxxxxxx npm run dev
 ```
 
-There is no client secret to copy — the device flow does not use one, which is why it suits a
-desktop app.
+Without it the sign-in screen says so plainly rather than offering a button that cannot work.
 
-**If you skip this step** the server reports `github: false` and the sign-in screen falls back
-to email and password (`devdesai@amneal.com`). Everything else in the demo works identically.
-Nobody is ever shown a GitHub button that cannot work.
+**The same Client ID goes on every machine.** It is a public identifier, not a secret.
 
 ---
 
-## 3. The demo, in order
+## 1. Your account
 
-### A. Sign in
-Click **Sign in with GitHub**. A six-character code appears and github.com opens in the real
-browser; type the code, approve, and the app signs you in. Nothing is typed into AmFile itself.
+There is nothing to create in AmFile. Your GitHub account *is* your account.
 
-Point out the button underneath: **"I don't have a GitHub account"** opens a one-line prompt
-pointing at github.com/signup. That is the entire onboarding story — there is no invite email
-to chase and no administrator to ask.
+- Already have one? Sign in with it.
+- Don't? The sign-in screen has **I don't have a GitHub account** → github.com/signup.
 
-### B. Create a project
-**New project** on the welcome screen. Name it (e.g. `ANDA 217-445 — Rivastigmine TDS`).
+**Sign in:** click **Sign in with GitHub**. A six-character code appears and github.com opens in
+your browser. Type the code, approve, and the app signs you in. Nothing is typed into AmFile.
 
-You are its owner. Say plainly: *there is no administrator in AmFile.* Nobody at Amneal — not
-IT, not me — can see this project unless you add them. The consequence is worth stating too: if
-every owner of a project leaves, the project is unreachable. Adding a second owner is the only
-recovery path, and that is deliberate.
+The token is kept in your OS keychain, so this is once per machine, not once per launch.
 
-### C. Add people by email
-**People** (welcome screen, or the ribbon under *File → Workspace*). Type a colleague's email
-and choose Read only / Can edit / Owner.
+### Usernames matter for adding people
 
-The important bit: **they do not need an AmFile account, and they do not need one yet.** The row
-shows as *Invited*. The first time anyone signs in with that address — today or next month —
-the invitation becomes real access automatically and the project is simply there.
+To add colleagues by their Amneal email, their GitHub username must follow the convention:
 
-Demonstrate on a second machine if you have one: sign in, and the project is already listed.
+```
+<name>.<surname>@amneal.com   →   <Name><Surname>Am
 
-### D. A document
-**New document** into the project. It opens in the editor with the full ribbon.
+dev.desai@amneal.com          →   DevDesaiAm
+anna.van.dijk@amneal.com      →   AnnaVanDijkAm
+```
 
-Type. The title bar shows **Unsaved**, then **Saved** and a version number after Ctrl/Cmd-S.
-Version numbers are the only versioning an analyst ever sees.
-
-### E. Two people at once
-With a colleague signed in to the same project on another machine, both open the document.
-Their edits arrive live, highlighted, and hovering a highlight names who made it.
-
-### F. Propose and review
-An editor's save becomes a **change proposal** rather than overwriting the document. Open the
-**Proposals** panel: the reviewer sees a word-level diff — not "this paragraph changed" but the
-exact words, `90.0` struck out and `95.0` inserted — and can **Accept**, **Close**, or
-**Comment**.
-
-Accepting creates the next revision and credits **the author**, not the approver. Show that in
-the History panel.
-
-If two people changed the same sentence, the merge refuses to guess and reports a conflict with
-all three versions side by side. Say why: silently picking one is how a specification acquires a
-number nobody approved.
-
-### G. The audit trail
-Open the **Audit** panel. Every action, with the printed name of who did it and when.
-
-Click **Verify**. It re-computes the hash chain and reports `chain intact`. This is tamper
-*detection* — each row's hash includes the previous row's, so removing or editing any row is
-visible. Deletion is separately blocked by database triggers, including `TRUNCATE`.
-
-> Want to prove it rather than assert it? `scripts/demo-tamper.sh` edits a row directly in the
-> database and then shows Verify catching it. Run it before the demo, not during.
-
-### H. Compliance
-**Check document** in the ribbon (Review tab), and the folder-wide check from the Navigator
-footer. Both are wired end to end but currently call a stub — the real engine lives in
-`deficiency-chatbot` and drops in behind `ComplianceProvider` without touching the UI.
+If someone's GitHub username doesn't match, add them by **username** instead — the same box
+accepts either.
 
 ---
 
-## 4. What not to click
+## 2. Make a project
 
-| Control | Why |
+**New project** on the welcome screen, or in the left panel footer. Name it.
+
+Behind the scenes that creates a **private GitHub repository** tagged `amfile-project`. You own
+it. Nobody at Amneal can see it unless you add them — there is no administrator in AmFile and no
+override.
+
+Worth knowing: if every owner of a project leaves, the project is unreachable. Adding a second
+owner is the only recovery path.
+
+---
+
+## 3. Folders and documents
+
+In the left panel, with the project selected:
+
+- **New folder** — a directory in the repo. Select a folder to nest inside it; the line
+  underneath always says *Adding into: …* so the destination is never a guess.
+- **New document** — a file in the repo. It opens in the editor with the full ribbon.
+
+Type. The title bar shows **Unsaved**, then a version number after Ctrl/Cmd-S. Each save is a
+commit; version numbers are the only versioning an analyst sees.
+
+---
+
+## 4. Add collaborators
+
+**People** on the welcome screen, or the people icon on the project row.
+
+Type an Amneal email or a GitHub username, choose **Read only** / **Can edit** / **Owner**, and
+**Add**. GitHub emails them an invitation; they accept it once, with one click.
+
+| Level | Can do |
 |---|---|
-| Dictate, Translate, Thesaurus | Deliberately refused — they would send your text to an external service. Clicking gives a clear explanation, which is fine to show if asked. |
-| 3D model | No representation in a `.docx` submission. |
-| Macros | AmFile does not execute user scripts, by design. |
-| Split view | Not built. **New window** then **Side by side** does the same job. |
+| Read only | Open and read. Cannot propose changes. |
+| Can edit | Edit and propose changes for review. |
+| Owner | Everything, plus accept changes and manage access. |
 
 ---
 
-## 5. If something goes wrong
+## 5. On another machine
+
+1. Install AmFile and start it with the **same Client ID**
+2. **Sign in with GitHub** as that person
+3. Accept the repo invitation if they haven't yet
+4. The project is already there
+
+No address to configure, no port to open, nothing on the same network. The two machines never
+talk to each other — they both talk to GitHub.
+
+---
+
+## 6. Testing the review flow
+
+With two people signed in on two machines:
+
+1. **Owner** creates a document, types, saves.
+2. **Editor** opens the same document, edits, saves → this becomes a **proposal**, not an
+   overwrite. Behind the scenes: a branch, a commit and a pull request.
+3. **Editor** saves twice more → still *one* proposal, not three. An author saving repeatedly
+   leaves one review to do.
+4. **Owner** opens the **Proposals** panel: a word-level diff — not "this paragraph changed" but
+   `90.0` struck out and `95.0` inserted.
+5. **Owner** clicks **Comment** — a PR comment, visible to everyone on the project.
+6. **Owner** clicks **Accept** (squash-merges) or **Close** (closes the PR). Accepting credits
+   **the author**, not the approver; check the History panel.
+7. **Read only** person tries to save → refused.
+
+### About "live"
+
+Updates arrive by polling, within a few seconds — **not instantly**. GitHub cannot push to a
+desktop app: there is no socket to hold open and no webhook a laptop can receive. Conditional
+requests keep it cheap (GitHub answers *304 Not Modified* when nothing changed, and 304s don't
+count against the rate limit), and the poller watches whichever document is on screen first.
+
+This is the one part of the design that GitHub does not do cleanly. Everything else maps.
+
+---
+
+## 7. What each thing really is
+
+| In AmFile | On GitHub |
+|---|---|
+| Project | Private repository tagged `amfile-project` |
+| Folder | Directory |
+| Document | JSON file holding the editor model |
+| Version | Commit |
+| Proposal | Branch + pull request |
+| Accept / Close | Squash-merge / close the PR |
+| Discussion | PR comments |
+| Access | Repository collaborators |
+| Audit trail | Commit history |
+
+You can open any project on github.com and see exactly this. Nothing is hidden in a database.
+
+---
+
+## 8. Honest notes
+
+- **The audit trail is git history.** Every commit hash covers its parent, so rewriting history
+  changes every hash after it — tamper-evidence by construction rather than by a column AmFile
+  maintains.
+- **Compliance checking is a stub.** The UI, streaming and folder-wide run are real; the
+  findings are not. The engine is being built in `deficiency-chatbot`.
+- **Repos are private, but they are on github.com.** That is a data-location decision for
+  Amneal to make deliberately, not a technical detail.
+- **GAMP 5 Category 5.** Bespoke software carries the heaviest validation burden. None of this
+  substitutes for that exercise.
+
+---
+
+## 9. If something goes wrong
 
 | Symptom | Fix |
 |---|---|
-| Status bar says **Offline** | The server stopped. Restart terminal 1. The app reconnects on its own. |
-| Server exits at startup with a token error | `databricks auth login`, then start it again. |
-| Sign in with GitHub is missing | `AMFILE_GITHUB_CLIENT_ID` is not set — see section 2. Email/password still works. |
-| GitHub says the device code expired | Codes last 15 minutes. Click Cancel and start again. |
-| "You do not have access to this project" | Access is per project and never global. Ask an owner to add your address. |
-| Document says locked by someone who isn't there | Locks expire 90 seconds after the last heartbeat. Wait, or an owner can force check-in. |
-
----
-
-## 6. Honest notes
-
-Things worth knowing before someone asks:
-
-- **The audit log was reset to empty on 10 Aug 2026**, when the invented sample accounts and
-  demo folders were deleted. Deleting those rows broke the hash chain — Verify caught it, which
-  is the guarantee working — so the chain was restarted from zero. In production this must never
-  happen; a record is a record. It is noted here rather than hidden because an audit trail whose
-  history is quietly discontinuous is worse than one that says where it starts.
-- **Traffic is unencrypted HTTP on loopback.** Fine for a laptop demo, not for real submission
-  records. TLS is a deployment concern, not a code change.
-- **Compliance checking is a stub.** The UI, the streaming and the folder-wide run are real; the
-  findings are not.
-- **GAMP 5 Category 5.** Bespoke software carries the heaviest validation burden. Nothing here
-  substitutes for that exercise.
+| "GitHub sign-in isn't set up" | `AMFILE_GITHUB_CLIENT_ID` was not set — see step 0. |
+| Code expired | Codes last 15 minutes. Cancel and start again. |
+| Project doesn't appear on the other machine | The invitation hasn't been accepted yet — check email, or github.com/notifications. |
+| "No GitHub account named …Am" | Their username doesn't match the convention. Add them by username instead. |
+| Status bar shows Offline | No internet, or GitHub is unreachable. It keeps retrying. |
+| Changes not appearing | Polling is a few seconds. If it persists, check the status bar. |

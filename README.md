@@ -40,19 +40,20 @@ cd server && npm start   # API + database
 npm run dev              # the desktop app
 ```
 
-Sign in with GitHub. There are no sample accounts and no "create account" screen — AmFile
-issues no accounts of its own, and the verified email GitHub returns is your identity.
+AmFile has no server, no database and no accounts of its own — it talks to GitHub. A project is
+a private repository, a document is a file in it, a proposal is a pull request, and who can see
+a project is who is a collaborator on the repository.
 
-GitHub sign-in needs a public client id (no secret; the device flow does not use one). Register
-an OAuth app at <https://github.com/settings/applications/new>, tick **Enable Device Flow**, and
-start the server with it:
+Sign in with GitHub. That needs a public client id (no secret — the device flow does not use
+one): register an OAuth app at <https://github.com/settings/applications/new>, tick **Enable
+Device Flow**, then:
 
 ```bash
-cd server && AMFILE_GITHUB_CLIENT_ID=Ov23xxxxxxxxxxxx npm start
+AMFILE_GITHUB_CLIENT_ID=Ov23xxxxxxxxxxxx npm run dev
 ```
 
-Without it the server advertises `github: false` and the app falls back to email/password, so no
-unusable button is ever shown. See **[DEMO.md](DEMO.md)** for the full walkthrough.
+Without it the sign-in screen says so rather than offering a button that cannot work. See
+**[DEMO.md](DEMO.md)** for the full walkthrough, including testing across machines.
 
 ### Who can see what
 
