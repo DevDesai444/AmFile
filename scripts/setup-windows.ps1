@@ -40,6 +40,25 @@ Write-Host ""
 
 function Have ($name) { [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
+<#
+  npm has to be invoked as npm.cmd, not npm.
+
+  Typing `npm` in PowerShell resolves to npm.ps1, and on a machine with the default execution
+  policy that file is refused: "running scripts is disabled on this system". npm.cmd is a batch
+  file, which the execution policy does not govern, so it works without asking anyone to weaken
+  a security setting they may not be allowed to change anyway.
+#>
+function Npm-Exe {
+  $cmd = Get-Command npm.cmd -ErrorAction SilentlyContinue
+  if ($cmd) { return $cmd.Source }
+  foreach ($guess in @(
+    (Join-Path $env:ProgramFiles 'nodejs\npm.cmd'),
+    (Join-Path ${env:ProgramFiles(x86)} 'nodejs\npm.cmd'),
+    (Join-Path $env:APPDATA 'npm\npm.cmd')
+  )) { if ($guess -and (Test-Path $guess)) { return $guess } }
+  return $null
+}
+
 # PATH is only refreshed for new processes, so a tool installed a moment ago stays invisible to
 # this one until the process environment is re-read.
 function Reload-Path {
@@ -69,7 +88,8 @@ if (Have 'node') {
 }
 if (-not $nodeOk) { Install-Package 'OpenJS.NodeJS.LTS' 'Node.js' }
 if (-not (Have 'node')) { Die "Node is installed but not on PATH yet. Close this window, open a new PowerShell, and run this again." }
-if (-not (Have 'npm'))  { Die "npm is missing even though Node is present. Reinstall Node.js." }
+$npm = Npm-Exe
+if (-not $npm) { Die "npm is missing even though Node is present. Reinstall Node.js." }
 
 # ----------------------------------------------------------------------------------- source
 if (Test-Path (Join-Path $Target '.git')) {
@@ -89,6 +109,11 @@ if (Test-Path (Join-Path $Target '.git')) {
 if (-not (Test-Path (Join-Path $Target 'package.json'))) { Die "$Target does not look like the AmFile source." }
 Good "Source is ready."
 
+if ($Target -like '*OneDrive*') {
+  Warn "This folder is inside OneDrive, which will try to sync the thousands of files npm installs."
+  Warn "It will still work, but if it becomes slow, move the folder somewhere outside OneDrive."
+}
+
 Set-Location $Target
 
 # ------------------------------------------------------------------------------------ config
@@ -106,13 +131,18 @@ if ($configured) {
 
 # --------------------------------------------------------------------------------- install
 Say "Installing dependencies. The first run takes a few minutes..."
-npm install --no-fund --no-audit
-if ($LASTEXITCODE -ne 0) { Die "npm install failed. The reason is above." }
+& $npm install --no-fund --no-audit
+
+# Checked by looking at the result, not at $LASTEXITCODE. A PowerShell-level failure — an
+# execution policy refusing a script, say — never sets an exit code, so the previous version of
+# this check read a stale value and announced success over a failed install.
+$installed = Test-Path (Join-Path $Target 'node_modules\electron')
+if (-not $installed) { Die "npm install did not complete. The reason is above." }
 Good "Dependencies installed."
 
 Write-Host ""
 Good "Starting AmFile. Click 'Sign in with GitHub' and approve the code it shows you."
-Write-Host "  Next time:  cd `"$Target`"  then  npm run dev" -ForegroundColor DarkGray
+Write-Host "  Next time:  cd `"$Target`"  then  npm.cmd run dev" -ForegroundColor DarkGray
 Write-Host ""
 
-npm run dev
+& $npm run dev

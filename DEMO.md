@@ -178,4 +178,5 @@ You can open any project on github.com and see exactly this. Nothing is hidden i
 | Project doesn't appear on the other machine | The invitation hasn't been accepted yet — check email, or github.com/notifications. |
 | "No GitHub account named …Am" | Their username doesn't match the convention. Add them by username instead. |
 | Status bar shows Offline | No internet, or GitHub is unreachable. It keeps retrying. |
+| Windows: "npm.ps1 cannot be loaded because running scripts is disabled" | PowerShell's execution policy blocks npm's `.ps1` shim. Use `npm.cmd` instead of `npm` — it is a batch file, so the policy does not apply and nothing has to be relaxed. The setup script does this itself. |
 | Changes not appearing | Polling is a few seconds. If it persists, check the status bar. |
