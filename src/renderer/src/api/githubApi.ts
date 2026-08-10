@@ -89,6 +89,19 @@ export function currentLogin(): string {
   return me?.login ?? 'unknown'
 }
 
+/**
+ * The signed-in login, fetching it if this module has not cached it yet.
+ *
+ * `currentLogin()` answers 'unknown' when the cache is empty, which is fine for a label and
+ * quietly wrong for anything that compares identities. It emptied on every hot reload, and the
+ * "reuse my open proposal" check compared against 'unknown', matched nothing, and opened a
+ * second pull request for the same document — so an author saving twice left two reviews.
+ */
+async function ensureLogin(): Promise<string> {
+  if (!me) me = await gh.currentUser()
+  return me.login
+}
+
 function asApiUser(u: gh.GitHubUser): ApiUser {
   return {
     id: u.login,
@@ -244,7 +257,7 @@ export const githubApi = {
   async createDocument(path: string, title: string, folderId: string): Promise<{ document: ApiDocument }> {
     const { repo, path: dir } = splitId(folderId)
     const file = `${dir ? `${dir}/` : ''}${title}${DOC_SUFFIX}`
-    await gh.writeJson(repo, file, emptyDocument(title, currentLogin()), `Create ${title}`)
+    await gh.writeJson(repo, file, emptyDocument(title, await ensureLogin()), `Create ${title}`)
     return {
       document: {
         id: `${repo}:${file}`,
@@ -277,8 +290,9 @@ export const githubApi = {
       const commits = await gh.commitsFor(repo, path)
       ref = commits[commits.length - revision]?.sha
     } else {
+      const login = await ensureLogin()
       const mine = (await gh.listProposals(repo, 'open').catch(() => [])).find(
-        (p) => p.author === currentLogin() && p.body?.includes(path)
+        (p) => p.author === login && p.body?.includes(path)
       )
       if (mine) ref = mine.branch
     }
@@ -331,7 +345,7 @@ export const githubApi = {
       footer: payload.footer ?? existing.content.footer,
       revision: existing.content.revision + 1,
       updatedAt: new Date().toISOString(),
-      updatedBy: currentLogin()
+      updatedBy: await ensureLogin()
     }
     await gh.writeJson(repo, path, next, payload.reason?.trim() || `Update ${existing.content.title}`, {
       sha: existing.sha
@@ -363,18 +377,23 @@ export const githubApi = {
   },
 
   async addComment(documentId: string, markId: string, quotedText: string, body: string): Promise<{ ok: true }> {
-    return mutateComments(documentId, (comments) => [
-      ...comments,
-      {
-        id: `${markId}-${comments.length + 1}`,
-        markId,
-        quotedText,
-        body,
-        authorName: currentLogin(),
-        createdAt: new Date().toISOString(),
-        resolvedAt: null
-      }
-    ], 'Add a comment')
+    const author = await ensureLogin()
+    return mutateComments(
+      documentId,
+      (comments) => [
+        ...comments,
+        {
+          id: `${markId}-${comments.length + 1}`,
+          markId,
+          quotedText,
+          body,
+          authorName: author,
+          createdAt: new Date().toISOString(),
+          resolvedAt: null
+        }
+      ],
+      'Add a comment'
+    )
   },
 
   async resolveComment(documentId: string, markId: string): Promise<{ ok: true }> {
@@ -442,11 +461,12 @@ export const githubApi = {
     const project = projects.find((p) => p.fullName === repo)
     if (!project) throw new Error('You no longer have access to that project.')
 
+    const login = await ensureLogin()
     const mine = (await gh.listProposals(repo, 'open')).find(
-      (p) => p.author === currentLogin() && p.body?.includes(path)
+      (p) => p.author === login && p.body?.includes(path)
     )
 
-    const branch = mine?.branch ?? `amfile/${currentLogin()}/${Date.now().toString(36)}`
+    const branch = mine?.branch ?? `amfile/${login}/${Date.now().toString(36)}`
     if (!mine) await gh.createBranch(repo, branch, project.defaultBranch)
 
     const existing = await gh.readJson<StoredDocument>(repo, path, branch)
@@ -460,7 +480,7 @@ export const githubApi = {
         content,
         revision: existing.content.revision + 1,
         updatedAt: new Date().toISOString(),
-        updatedBy: currentLogin()
+        updatedBy: login
       },
       summary?.trim() || `Update ${existing.content.title}`,
       { sha: existing.sha, branch }

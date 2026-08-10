@@ -12,8 +12,6 @@ export default function TitleBar(): React.JSX.Element {
   const savedAt = useDocumentStore((s) => s.savedAt)
   const dirty = useDocumentStore((s) => s.dirty)
   const revision = useDocumentStore((s) => s.revision)
-  const lockedByMe = useDocumentStore((s) => s.lockedByMe)
-  const lockedByOther = useDocumentStore((s) => s.lockedByOther)
   const user = useSessionStore((s) => s.user)
   const signOut = useSessionStore((s) => s.signOut)
   const requestSearch = useUiStore((s) => s.requestSearch)
@@ -44,11 +42,6 @@ export default function TitleBar(): React.JSX.Element {
             <FileText size={13} strokeWidth={1.5} className="titlebar-file-icon" />
             <span className="titlebar-filename">{fileName}</span>
             {revision > 0 && <span className="titlebar-saved-badge">v{revision}</span>}
-            {lockedByOther ? (
-              <span className="titlebar-saved-badge titlebar-saved-badge--locked">Locked by {lockedByOther}</span>
-            ) : lockedByMe ? (
-              <span className="titlebar-saved-badge">Checked out to you</span>
-            ) : null}
             {savedAt && !dirty && <span className="titlebar-saved-badge">Saved {savedAt}</span>}
             {dirty && <span className="titlebar-saved-badge titlebar-saved-badge--dirty">Unsaved</span>}
           </>

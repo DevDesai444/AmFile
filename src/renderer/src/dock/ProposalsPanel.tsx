@@ -111,9 +111,17 @@ function ProposalCard({ p, onChanged }: { p: Proposal; onChanged: () => void }):
 
       {p.status !== 'open' && (
         <div className="proposal-resolved">
+          {/* Only name a person or a revision when one is actually known — printing "null"
+              at the user is worse than saying less. */}
           {p.status === 'accepted'
-            ? `Accepted by ${p.resolvedByName} as v${p.resultingRevision}`
-            : `Closed by ${p.resolvedByName}`}
+            ? [
+                'Accepted',
+                p.resolvedByName ? `by ${p.resolvedByName}` : null,
+                p.resultingRevision ? `as v${p.resultingRevision}` : null
+              ]
+                .filter(Boolean)
+                .join(' ')
+            : ['Closed', p.resolvedByName ? `by ${p.resolvedByName}` : null].filter(Boolean).join(' ')}
         </div>
       )}
 

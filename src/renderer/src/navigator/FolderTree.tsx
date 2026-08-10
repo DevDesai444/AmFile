@@ -158,7 +158,9 @@ function FolderRow({ node, depth, forceOpen }: { node: FolderNode; depth: number
                 <span className="tree-caret-spacer" />
                 <FileText size={13} strokeWidth={1.5} className="tree-icon" />
                 <span className="tree-label">{d.path}</span>
-                <span className="tree-rev">v{d.currentRevision}</span>
+                {/* Only shown once known. The tree is built from one directory listing, which
+                    carries no revision, and printing "v0" asserted something false. */}
+                {d.currentRevision > 0 && <span className="tree-rev">v{d.currentRevision}</span>}
                 {d.lockedBy && (
                   <Lock
                     size={11}
