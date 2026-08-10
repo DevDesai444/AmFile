@@ -57,13 +57,23 @@ export const useFolderStore = create<FolderState>((set, get) => ({
 
   refresh: async () => {
     set({ loading: true })
-    try {
-      const { folders } = await api.listFolders()
-      // Expand everything the first time so the structure is visible without hunting.
-      const expanded = get().expanded.size === 0 ? collectIds(folders) : get().expanded
-      set({ folders, loading: false, error: null, expanded })
-    } catch (err) {
-      set({ loading: false, error: err instanceof Error ? err.message : 'Could not load folders.' })
+    // The database is across the network, so a single failure is more likely to be a blip than
+    // a real outage. Retry once before showing an error: latching "Internal Server Error" until
+    // someone notices the Retry button makes a two-second hiccup look like a broken app.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { folders } = await api.listFolders()
+        // Expand everything the first time so the structure is visible without hunting.
+        const expanded = get().expanded.size === 0 ? collectIds(folders) : get().expanded
+        set({ folders, loading: false, error: null, expanded })
+        return
+      } catch (err) {
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 600))
+          continue
+        }
+        set({ loading: false, error: err instanceof Error ? err.message : 'Could not load folders.' })
+      }
     }
   },
 
@@ -77,9 +87,16 @@ export const useFolderStore = create<FolderState>((set, get) => ({
 
   createFolder: async (name, parentId) => {
     try {
-      await api.createFolder(name, parentId)
+      const { id } = await api.createFolder(name, parentId)
       useToastStore.getState().push(`Folder “${name}” created.`)
       await get().refresh()
+      // Select the new folder and expand its parent: otherwise it is created somewhere
+      // off-screen and the obvious next action ("now put a document in it") targets the
+      // wrong place.
+      set((s) => ({
+        selectedFolder: { id, name },
+        expanded: new Set([...s.expanded, id, ...(parentId ? [parentId] : [])])
+      }))
     } catch (err) {
       useToastStore.getState().push(err instanceof Error ? err.message : 'Could not create folder.', 'error')
     }

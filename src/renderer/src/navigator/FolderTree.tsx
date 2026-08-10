@@ -175,16 +175,50 @@ function FolderRow({ node, depth, forceOpen }: { node: FolderNode; depth: number
   )
 }
 
+/** Depth-first lookup, so the footer actions can tell what access you have where. */
+function findNode(nodes: FolderNode[], id: string): FolderNode | null {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    const hit = findNode(n.children, id)
+    if (hit) return hit
+  }
+  return null
+}
+
 export default function FolderTree(): React.JSX.Element {
   const folders = useFolderStore((s) => s.folders)
   const loading = useFolderStore((s) => s.loading)
   const error = useFolderStore((s) => s.error)
   const refresh = useFolderStore((s) => s.refresh)
   const createFolder = useFolderStore((s) => s.createFolder)
+  const createDocument = useFolderStore((s) => s.createDocument)
+  const selectedFolder = useFolderStore((s) => s.selectedFolder)
   const navFilter = useUiStore((s) => s.navFilter)
   const [busy, setBusy] = useState(false)
 
   const visible = useMemo(() => filterTree(folders, navFilter.trim()), [folders, navFilter])
+
+  // Where "New folder" and "New document" will put things: whatever is selected, falling back
+  // to the only project when there is exactly one, so a first-time user is never stuck.
+  const target = useMemo(() => {
+    if (selectedFolder) return findNode(folders, selectedFolder.id)
+    return folders.length === 1 ? folders[0] : null
+  }, [folders, selectedFolder])
+  const canAdd = target?.access === 'editor' || target?.access === 'owner'
+
+  const addTo = async (kind: 'folder' | 'document'): Promise<void> => {
+    if (!target) return
+    const name = await askText(
+      kind === 'folder' ? `New folder inside “${target.name}”` : `New document in “${target.name}”`,
+      '',
+      { confirmLabel: 'Create' }
+    )
+    if (!name?.trim()) return
+    setBusy(true)
+    if (kind === 'folder') await createFolder(name.trim(), target.id)
+    else await createDocument(name.trim(), target.id)
+    setBusy(false)
+  }
 
   if (error) {
     return (
@@ -235,10 +269,47 @@ export default function FolderTree(): React.JSX.Element {
           <FolderPlus size={11} strokeWidth={1.5} />
           New project
         </button>
+        <button
+          type="button"
+          className="tree-refresh"
+          disabled={busy || !canAdd}
+          title={
+            !target
+              ? 'Select a project first'
+              : canAdd
+                ? `New folder inside “${target.name}”`
+                : `You have read-only access to “${target.name}”`
+          }
+          onClick={() => void addTo('folder')}
+        >
+          <FolderPlus size={11} strokeWidth={1.5} />
+          New folder
+        </button>
+        <button
+          type="button"
+          className="tree-refresh"
+          disabled={busy || !canAdd}
+          title={
+            !target
+              ? 'Select a project first'
+              : canAdd
+                ? `New document in “${target.name}”`
+                : `You have read-only access to “${target.name}”`
+          }
+          onClick={() => void addTo('document')}
+        >
+          <FileText size={11} strokeWidth={1.5} />
+          New document
+        </button>
         <button type="button" className="tree-refresh" onClick={() => void refresh()}>
           <RefreshCw size={11} strokeWidth={1.5} />
           Refresh
         </button>
+        {folders.length > 0 && (
+          <p className="tree-actions-target">
+            {target ? `Adding into: ${target.name}` : 'Select a project to add into it'}
+          </p>
+        )}
       </div>
     </div>
   )

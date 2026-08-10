@@ -1118,13 +1118,16 @@
   color: var(--med);
   border-color: color-mix(in srgb, var(--med) 35%, transparent);
 }
+/* Visible, not hover-only. These were opacity:0 until the row was hovered, which meant the
+   only way to add a folder or a document inside a project was to discover it by accident. */
 .tree-mini-btn {
   flex: none;
   color: var(--mut2);
-  opacity: 0;
+  opacity: 0.5;
   padding: 2px;
 }
-.tree-row:hover .tree-mini-btn {
+.tree-row:hover .tree-mini-btn,
+.tree-row.is-selected .tree-mini-btn {
   opacity: 1;
 }
 .tree-mini-btn:hover {
@@ -1132,8 +1135,23 @@
 }
 .tree-actions {
   display: flex;
-  gap: 12px;
-  padding: 0 9px;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 6px 9px 0;
+}
+.tree-refresh:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.tree-actions-target {
+  width: 100%;
+  padding: 2px 0 0;
+  margin: 0;
+  font-size: 10px;
+  color: var(--mut2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .navigator-empty-hint {
   font-size: 10px;

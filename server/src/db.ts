@@ -16,16 +16,42 @@ const LAKEBASE_DB = process.env.AMFILE_DB_NAME ?? 'databricks_postgres'
  * any reconnect logic elsewhere.
  */
 let cached: { token: string; expiresAt: number } | null = null
+/**
+ * The fetch currently in flight, if any.
+ *
+ * Without this, a cold pool is a thundering herd: `pg` opens one connection per waiting query,
+ * each calls this function, none of them sees a cached token yet, and every one of them spawns
+ * its own `databricks auth token`. Those processes contend on the CLI's shared token cache, so
+ * some fail — which surfaced as the app loading with "Internal Server Error" in the project
+ * tree roughly every other time, because it asks for folders and documents at the same moment.
+ *
+ * One fetch, shared by everyone waiting on it.
+ */
+let inFlight: Promise<string> | null = null
 
 async function databricksToken(): Promise<string> {
   if (cached && Date.now() < cached.expiresAt - 60_000) return cached.token
-  const { stdout } = await execFileAsync('databricks', ['auth', 'token'], { maxBuffer: 1024 * 1024 })
-  const parsed = JSON.parse(stdout) as { access_token: string; expires_in?: number }
-  cached = {
-    token: parsed.access_token,
-    expiresAt: Date.now() + (parsed.expires_in ?? 3600) * 1000
-  }
-  return cached.token
+  if (inFlight) return inFlight
+
+  inFlight = (async () => {
+    try {
+      const { stdout } = await execFileAsync('databricks', ['auth', 'token'], { maxBuffer: 1024 * 1024 })
+      const parsed = JSON.parse(stdout) as { access_token: string; expires_in?: number }
+      // One line per real fetch. Should appear once at startup and about hourly after that;
+      // a burst of them means the single-flight guard above has stopped working.
+      console.log('[db] fetched a fresh Databricks token')
+      cached = {
+        token: parsed.access_token,
+        expiresAt: Date.now() + (parsed.expires_in ?? 3600) * 1000
+      }
+      return cached.token
+    } finally {
+      // Cleared on failure too, so a transient CLI error does not wedge every later connection.
+      inFlight = null
+    }
+  })()
+
+  return inFlight
 }
 
 export const pool = new pg.Pool({
