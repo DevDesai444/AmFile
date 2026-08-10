@@ -374,13 +374,13 @@ export const githubApi = {
   // ----- locks: no longer a concept ----------------------------------------------------------
   // Check-out locking was replaced by proposals. These stay so the editor's existing calls are
   // harmless no-ops rather than errors.
-  async lock(): Promise<{ ok: true }> {
+  async lock(_id: string): Promise<{ ok: true; expiresAt: string }> {
+    return { ok: true, expiresAt: '' }
+  },
+  async unlock(_id: string, _force = false): Promise<{ ok: true }> {
     return { ok: true }
   },
-  async unlock(): Promise<{ ok: true }> {
-    return { ok: true }
-  },
-  async heartbeat(): Promise<{ held: boolean }> {
+  async heartbeat(_id: string): Promise<{ held: boolean }> {
     return { held: true }
   },
 
@@ -513,7 +513,7 @@ export const githubApi = {
     return { ok: true, revision: 0 }
   },
 
-  async closeProposal(id: string): Promise<{ ok: true }> {
+  async closeProposal(id: string, _reason: string | null = null): Promise<{ ok: true }> {
     const { repo, number } = splitProposalId(id)
     await gh.closeProposal(repo, number)
     return { ok: true }

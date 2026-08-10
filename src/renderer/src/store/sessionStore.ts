@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, getToken, setToken, type ApiUser } from '../api/client'
+import { api, type ApiUser } from '../api/client'
 
 interface SessionState {
   user: ApiUser | null
@@ -10,12 +10,10 @@ interface SessionState {
   presence: Array<{ userId: string; displayName: string }>
 
   restore: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<boolean>
-  signInWithToken: (token: string, user: ApiUser) => void
+  signInWithToken: (token: string) => Promise<void>
   signOut: () => Promise<void>
   setServerOnline: (online: boolean) => void
   setPresence: (userId: string, displayName: string, online: boolean) => void
-  clearMustChangePassword: () => void
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -26,37 +24,38 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   serverOnline: false,
   presence: [],
 
-  /** Reuse a stored token across restarts so a demo doesn't start at the login screen twice. */
+  /**
+   * Reuse the GitHub token kept from a previous session, so signing in is a once-per-machine
+   * act rather than a once-per-launch one. The token is held by the main process, encrypted
+   * with the OS keychain.
+   */
   restore: async () => {
-    if (!getToken()) {
+    const token = await window.amfile?.github?.storedToken().catch(() => null)
+    if (!token) {
       set({ status: 'signed-out' })
       return
     }
     try {
-      const { user } = await api.me()
+      const user = await api.adoptToken(token)
       set({ user, status: 'signed-in', error: null })
     } catch {
-      setToken(null)
+      // Revoked, expired, or offline on first launch — back to the sign-in screen.
+      await window.amfile?.github?.signOut().catch(() => undefined)
       set({ user: null, status: 'signed-out' })
     }
   },
 
-  signIn: async (email, password) => {
+
+
+  /** The device flow approved on github.com; adopt the token it produced. */
+  signInWithToken: async (token) => {
     set({ busy: true, error: null })
     try {
-      const { user } = await api.login(email, password)
+      const user = await api.adoptToken(token)
       set({ user, status: 'signed-in', busy: false })
-      return true
     } catch (err) {
-      set({ busy: false, error: err instanceof Error ? err.message : 'Sign in failed.' })
-      return false
+      set({ busy: false, error: err instanceof Error ? err.message : 'Could not read your GitHub account.' })
     }
-  },
-
-  /** GitHub device flow finished elsewhere; adopt the session it produced. */
-  signInWithToken: (token, user) => {
-    setToken(token)
-    set({ user, status: 'signed-in', busy: false, error: null })
   },
 
   signOut: async () => {
@@ -65,9 +64,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   setServerOnline: (serverOnline) => set({ serverOnline }),
-
-  clearMustChangePassword: () =>
-    set((s) => ({ user: s.user ? { ...s.user, mustChangePassword: false } : null })),
 
   setPresence: (userId, displayName, online) =>
     set(() => {

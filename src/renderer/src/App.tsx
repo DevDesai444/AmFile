@@ -11,7 +11,6 @@ import Dock from './dock/Dock'
 import StatusBar from './statusbar/StatusBar'
 import Welcome from './welcome/Welcome'
 import LoginView from './welcome/LoginView'
-import ChangePasswordView from './welcome/ChangePasswordView'
 import SettingsView from './welcome/SettingsView'
 import EditorCanvas from './editor/EditorCanvas'
 import FolderRun from './dock/FolderRun'
@@ -30,7 +29,6 @@ export default function App(): React.JSX.Element {
   const dirty = useDocumentStore((s) => s.dirty)
   const applyFolderProgress = useComplianceStore((s) => s.applyFolderProgress)
   const status = useSessionStore((s) => s.status)
-  const user = useSessionStore((s) => s.user)
   const restore = useSessionStore((s) => s.restore)
   const setServerOnline = useSessionStore((s) => s.setServerOnline)
   const setPresence = useSessionStore((s) => s.setPresence)
@@ -98,22 +96,6 @@ export default function App(): React.JSX.Element {
             <LoginView />
           </div>
         </div>
-        <PromptDialog />
-      </div>
-    )
-  }
-
-  // A one-time password stays one-time only if the app is unusable until it's replaced.
-  if (user?.mustChangePassword) {
-    return (
-      <div className="app-shell">
-        <TitleBar />
-        <div className="app-body">
-          <div className="app-center">
-            <ChangePasswordView />
-          </div>
-        </div>
-        <Toaster />
         <PromptDialog />
       </div>
     )

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { Editor, JSONContent } from '@tiptap/core'
-import { api, ApiError } from '../api/client'
+import { api, watchDocument, ApiError } from '../api/client'
 import { useDocumentStore } from '../store/documentStore'
 import { useServerDocsStore } from '../store/serverDocsStore'
 import { useCommentStore } from '../store/commentStore'
@@ -10,7 +10,6 @@ import { askText } from '../common/promptStore'
 import { useSessionStore } from '../store/sessionStore'
 
 /** Renew the lock well inside the server's 90s lease so a slow network doesn't drop it. */
-const HEARTBEAT_MS = 30_000
 
 export function useServerDocument(editor: Editor | null): {
   saveToServer: () => Promise<void>
@@ -23,8 +22,6 @@ export function useServerDocument(editor: Editor | null): {
   const setLockState = useDocumentStore((s) => s.setLockState)
   const markSaved = useDocumentStore((s) => s.markSaved)
   const clearPendingUpdate = useServerDocsStore((s) => s.clearPendingUpdate)
-
-  const heartbeat = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const load = useCallback(
     async (id: string) => {
@@ -61,17 +58,11 @@ export function useServerDocument(editor: Editor | null): {
     }
   }, [pendingOpenServerDocId, editor, load, clearPendingServerOpen])
 
-  // Hold the lock while the document is open.
+  // Tell the poller which document to watch, so other people's changes to the one on screen
+  // are noticed first. There is no lock to hold: proposals replaced check-out locking.
   useEffect(() => {
-    if (!documentId) return
-    heartbeat.current = setInterval(() => {
-      void api.heartbeat(documentId).catch(() => undefined)
-    }, HEARTBEAT_MS)
-    return () => {
-      if (heartbeat.current) clearInterval(heartbeat.current)
-      // Release on close so the next author isn't blocked for a full lease period.
-      void api.unlock(documentId).catch(() => undefined)
-    }
+    watchDocument(documentId ?? null)
+    return () => watchDocument(null)
   }, [documentId])
 
   /**
